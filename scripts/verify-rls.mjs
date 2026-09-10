@@ -10,6 +10,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 
+// supabase-js always spins up a realtime client, which needs a native
+// WebSocket — only built into Node 22+. Polyfill it so this script also runs
+// on Node 20 (still a common LTS), without requiring everyone to upgrade.
+if (typeof globalThis.WebSocket === "undefined") {
+  const { WebSocket } = await import("ws");
+  globalThis.WebSocket = WebSocket;
+}
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
