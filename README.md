@@ -43,6 +43,57 @@ gedeeld, generiek datamodel.
 | Verenigingsdiensten BV | b — Standaard | fatima@verenigingsdiensten.test |
 | Citymarketing Regio Noord | c — Citymarketing | daan@citymarketing-noord.test |
 
+## Alternatief: volledig in de cloud (geen Docker nodig)
+
+De route hierboven (`supabase start`) vereist een lokaal draaiende Docker.
+Werkt dat niet lekker (bekend probleem: Docker Desktop's interne schijf raakt
+weleens corrupt — helpt dan meestal: Docker Desktop volledig afsluiten,
+opnieuw starten, en via het Troubleshoot-icoon "Clean / Purge data" kiezen),
+dan kan het project ook zonder Docker draaien, met een gratis
+Supabase-cloudproject in plaats van de lokale database:
+
+1. **Maak een gratis project op [supabase.com](https://supabase.com).** Kies
+   bij het aanmaken een databasewachtwoord en bewaar dat.
+2. **Koppel dit project eraan:**
+   ```bash
+   supabase login
+   supabase link --project-ref <jouw-project-ref>
+   ```
+   De project-ref is het stukje vóór `.supabase.co` in je project-URL
+   (Project Settings → General → "Reference ID").
+3. **Zet het schema erop:**
+   ```bash
+   supabase db push
+   ```
+   Dit past alle migraties toe op de cloud-database (`supabase db reset`
+   werkt hier niet — dat commando is alleen voor de lokale Docker-database).
+4. **Zet de testdata erin** via de Supabase-dashboard: **SQL Editor** →
+   **New query** → plak de volledige inhoud van `supabase/seed.sql` → **Run**.
+5. **Vul `.env.local`** met de **Project URL** en **anon key** van
+   Project Settings → API (in plaats van de lokale `127.0.0.1`-waarden), en
+   draai gewoon `npm run dev` zoals normaal.
+
+### De website zelf ook hosten (Vercel)
+
+Om ook een publieke link te krijgen (in plaats van alleen `localhost`):
+
+1. Ga naar [vercel.com](https://vercel.com), **Sign Up** → **Continue with
+   GitHub**, en importeer deze repository.
+2. Zet in de projectinstellingen de **Environment Variables**
+   `NEXT_PUBLIC_SUPABASE_URL` en `NEXT_PUBLIC_SUPABASE_ANON_KEY` (dezelfde
+   waarden als in `.env.local`). Kies bij **Type** expliciet **Config**, niet
+   **Secret** — deze waarden zijn sowieso publiek zichtbaar in de browser
+   (dat is normaal voor de `NEXT_PUBLIC_`-anon-key, de beveiliging zit in de
+   RLS-policies, niet in geheimhouding van deze waarde); Vercel staat niet
+   toe een eenmaal als "Secret" opgeslagen variabele achteraf om te zetten
+   naar "Config", dus kies het meteen goed.
+3. Als het project nog geen deployment heeft (bijv. na het los aanpassen van
+   instellingen): ga naar **Deployments** → **Create Deployment** en vul de
+   gewenste branch in.
+
+Op deze manier is de app te draaien en te testen zonder dat er ooit Docker
+op de eigen machine nodig is.
+
 ## RLS verifiëren
 
 ```bash
@@ -139,13 +190,12 @@ zodra er een bereikbaar Supabase-project is.
   Supabase-project in de bouwomgeving om `supabase gen types` te draaien).
   Vervang dit bestand door de CLI-output zodra je een project hebt gelinkt;
   de vorm is bewust identiek gehouden.
-- De UI is end-to-end gebouwd en getypecheckt (`npm run build` slaagt), maar
-  in deze omgeving niet in de browser doorlopen tegen een echte, draaiende
-  Supabase-instantie (geen Docker-daemon beschikbaar in deze sandbox). Het
-  datamodel, alle 13 migraties, de rollbacks en de RLS-policies zijn wel
-  rechtstreeks tegen een lokale Postgres-instantie doorgemeten (zie
-  hieronder) — de browser-UI zelf verdient een keer doorklikken door jou of
-  in een omgeving met Docker voor je live gaat.
+- De UI is end-to-end getest in de browser tegen een echte Supabase-cloud-
+  database (zie "Alternatief: volledig in de cloud" hierboven) — inloggen,
+  de profielenlijst met filters, en de pakketverschillen tussen a/b/c zijn
+  op deze manier bevestigd te werken. Het datamodel, alle 13 migraties, de
+  rollbacks en de RLS-policies zijn daarnaast ook rechtstreeks tegen een
+  losse lokale Postgres-instantie doorgemeten (zie hieronder).
 - Alles wat in de opdracht onder "nadrukkelijk buiten scope" staat
   (stadsscore/sponsorscore-berekening, matching, dashboards,
   sponsor-uitnodigingsflow, facturatie, externe integraties,
