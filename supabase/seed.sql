@@ -181,3 +181,59 @@ insert into public.profile_event_links (profile_id, event_id, role, created_by) 
   ('55555555-1111-1111-1111-000000000002', '66666666-1111-1111-1111-000000000002', 'lead', '22222222-2222-2222-2222-000000000001'),
   ('55555555-3333-3333-3333-000000000001', '66666666-3333-3333-3333-000000000001', 'sponsor', '22222222-2222-2222-2222-000000000004'),
   ('55555555-3333-3333-3333-000000000002', '66666666-3333-3333-3333-000000000001', 'lead', '22222222-2222-2222-2222-000000000004');
+
+-- ---------------------------------------------------------------------
+-- Leadafkomst-kwaliteit (configureerbare data, gebruikt door de
+-- stadsscore's lead_source_quality-criterium)
+-- ---------------------------------------------------------------------
+update public.lead_sources set quality_score = 85 where id = '33333333-2222-2222-2222-000000000001'; -- Referral (pakket b)
+update public.lead_sources set quality_score = 25 where id = '33333333-2222-2222-2222-000000000002'; -- Koud contact (pakket b)
+update public.lead_sources set quality_score = 60 where id = '33333333-3333-3333-3333-000000000001'; -- Website (pakket c)
+update public.lead_sources set quality_score = 80 where id = '33333333-3333-3333-3333-000000000002'; -- Netwerkevent (pakket c)
+
+-- ---------------------------------------------------------------------
+-- score_criteria: sponsorscore (pakket b) en stadsscore (pakket c).
+-- Gelijk verdeelde startgewichten (weight = 1) — aan te passen als losse
+-- databasewaarde, geen codewijziging nodig.
+-- ---------------------------------------------------------------------
+insert into public.score_criteria (organization_id, package_type, key, label, weight) values
+  ('11111111-1111-1111-1111-000000000002', 'b', 'relationship_trend', 'Trend in relatiescore', 1),
+  ('11111111-1111-1111-1111-000000000002', 'b', 'task_punctuality', 'Taken op tijd afgerond', 1),
+  ('11111111-1111-1111-1111-000000000002', 'b', 'sponsor_tenure', 'Duur en continuïteit sponsorschap', 1),
+  ('11111111-1111-1111-1111-000000000002', 'b', 'event_engagement', 'Betrokkenheid bij evenementen', 1),
+
+  ('11111111-1111-1111-1111-000000000003', 'c', 'relationship_trend', 'Trend in relatiescore', 1),
+  ('11111111-1111-1111-1111-000000000003', 'c', 'event_contribution', 'Bijdrage aan stadsevenementen', 1),
+  ('11111111-1111-1111-1111-000000000003', 'c', 'lead_source_quality', 'Kwaliteit leadafkomst', 1);
+
+-- ---------------------------------------------------------------------
+-- Eén voorbeeldberekening per pakket, zodat de score-UI direct te
+-- controleren is zonder eerst zelf op "Bereken score" te hoeven klikken.
+-- Elke run deelt één run_id tussen de score_components en de bijbehorende
+-- rij in relationship_scores (score_type 'sponsor' resp. 'city').
+-- ---------------------------------------------------------------------
+
+-- Sponsorscore voor Cafe De Hoek (pakket b). Deze waarden zijn consistent
+-- met wat de echte berekening (zie lib/scoring/calculate.ts) zou opleveren
+-- voor dit profiel op het moment van seeden: nog geen tweede relatiescore-
+-- meting, nog geen (voorbije) deadline, kersvers profiel, nog geen
+-- evenementkoppeling.
+insert into public.score_components (profile_id, criterion_key, run_id, value, weight_applied, explanation) values
+  ('55555555-2222-2222-2222-000000000002', 'relationship_trend', '77777777-1111-1111-1111-000000000001', 50, 1, 'Nog onvoldoende relatiescore-geschiedenis voor een trend (minimaal 2 metingen nodig) — neutrale score toegepast.'),
+  ('55555555-2222-2222-2222-000000000002', 'task_punctuality', '77777777-1111-1111-1111-000000000001', 50, 1, 'Nog geen taken met een deadline om te beoordelen — neutrale score toegepast.'),
+  ('55555555-2222-2222-2222-000000000002', 'sponsor_tenure', '77777777-1111-1111-1111-000000000001', 30, 1, 'Recent gestart als sponsor, laatste activiteit vandaag.'),
+  ('55555555-2222-2222-2222-000000000002', 'event_engagement', '77777777-1111-1111-1111-000000000001', 0, 1, 'Nog niet gekoppeld aan een evenement.');
+
+insert into public.relationship_scores (profile_id, score_type, score, note, recorded_by, run_id) values
+  ('55555555-2222-2222-2222-000000000002', 'sponsor', 32.50, 'Automatisch berekend op basis van 4 criteria.', '22222222-2222-2222-2222-000000000003', '77777777-1111-1111-1111-000000000001');
+
+-- Stadsscore voor Regiobank Noord (pakket c). Consistent met de
+-- daadwerkelijke relatiescore-geschiedenis (70 -> 85), de evenementkoppeling
+-- als sponsor, en de "Netwerkevent"-leadafkomst (quality_score 80) hierboven.
+insert into public.score_components (profile_id, criterion_key, run_id, value, weight_applied, explanation) values
+  ('55555555-3333-3333-3333-000000000001', 'relationship_trend', '77777777-3333-3333-3333-000000000001', 65, 1, 'Relatiescore steeg van 70 naar 85 (+15) sinds de vorige meting.'),
+  ('55555555-3333-3333-3333-000000000001', 'event_contribution', '77777777-3333-3333-3333-000000000001', 33.33, 1, 'Draagt bij aan 1 evenement(en) (1x sponsor, 0x lead).'),
+  ('55555555-3333-3333-3333-000000000001', 'lead_source_quality', '77777777-3333-3333-3333-000000000001', 80, 1, 'Leadafkomst "Netwerkevent" heeft een geconfigureerde kwaliteitsscore van 80.');
+
+insert into public.relationship_scores (profile_id, score_type, score, note, recorded_by, run_id) values
+  ('55555555-3333-3333-3333-000000000001', 'city', 59.44, 'Automatisch berekend op basis van 3 criteria.', '22222222-2222-2222-2222-000000000004', '77777777-3333-3333-3333-000000000001');

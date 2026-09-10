@@ -37,9 +37,24 @@ gebruiker van Verenigingsdiensten BV (pakket b), en controleert:
 3. De `organizations`-rij van de andere organisatie is niet leesbaar.
 4. Een nieuw profiel aanmaken met het `organization_id` van de andere organisatie mislukt (RLS `WITH CHECK`-schending).
 5. Een bestaand profiel van de andere organisatie bijwerken (op basis van het echte `id`) raakt 0 rijen.
+6. Dezelfde afscherming geldt voor de sponsorscore-/stadsscore-tabellen uit
+   fase 2: de gebruiker van Sportgala Events (pakket a, dus zonder eigen
+   criteria) ziet 0 rijen in zowel `score_criteria` als `score_components`
+   — Verenigingsdiensten BV's eigen criteria lekken niet door — en kan er
+   ook niets in aanmaken.
 
-Alle vijf moeten "PASS" tonen. Het script eindigt met exit-code 1 zodra er
+Alle checks moeten "PASS" tonen. Het script eindigt met exit-code 1 zodra er
 iets faalt, zodat het ook in CI te gebruiken is.
+
+**Platform-admin is een bewuste, geteste uitzondering op dit testplan.**
+Het `fallontest`-mechanisme (zie README, sectie "Platform-admin") laat één
+expliciet toegevoegd account juist wél dwars door alle organisaties heen
+kijken. Dat wordt niet door dit script gecontroleerd (dat zou de bovenstaande
+checks tegenspreken) — de RLS-bypass zelf is apart geverifieerd door lokaal
+te bevestigen dat (a) een account in `platform_admins` rijen van meerdere
+organisaties tegelijk teruggeeft en er ook in kan schrijven, en (b) een
+account dat niet in die tabel staat — inclusief na het weer verwijderen van
+zo'n rij — direct terug is tot de normale isolatie van precies 1 organisatie.
 
 ## Optie 2 — handmatig via de UI
 

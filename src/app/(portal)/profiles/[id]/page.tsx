@@ -40,8 +40,7 @@ export default async function ProfileDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requireSession();
-  const features = getPackageFeatures(session.packageType);
+  await requireSession();
   const supabase = await createClient();
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", id).single();
@@ -50,13 +49,26 @@ export default async function ProfileDetailPage({
     notFound();
   }
 
+  // Driven by the profile's own organization, not the viewer's session: for
+  // every normal user these are always the same org (RLS guarantees it), but
+  // a platform admin can open a profile from a different organization than
+  // their own — the tabs/fields shown must then follow that profile's actual
+  // package, not the admin's.
+  const { data: profileOrg } = await supabase
+    .from("organizations")
+    .select("package_type")
+    .eq("id", profile.organization_id)
+    .single();
+  const packageType = profileOrg?.package_type ?? "b";
+  const features = getPackageFeatures(packageType);
+
   let archetypes: { id: string; name: string }[] = [];
   if (features.showArchetype) {
     const { data } = await supabase.from("archetypes").select("id, name").order("name");
     archetypes = data ?? [];
   }
 
-  const PackageHint = PACKAGE_HINTS[session.packageType];
+  const PackageHint = PACKAGE_HINTS[packageType];
 
   return (
     <div className="flex flex-col gap-4">
@@ -115,7 +127,7 @@ export default async function ProfileDetailPage({
 
               {features.tabs.includes("score") ? (
                 <TabsContent value="score">
-                  <ScoreTab profileId={profile.id} />
+                  <ScoreTab profileId={profile.id} packageType={packageType} />
                 </TabsContent>
               ) : null}
 

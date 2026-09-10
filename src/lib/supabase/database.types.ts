@@ -14,6 +14,7 @@ export type ProfileStatus = "lead" | "prospect" | "sponsor" | "inactive";
 export type TaskStatus = "open" | "in_progress" | "done";
 export type ProfileEventRole = "lead" | "sponsor";
 export type ScoreType = "relationship" | "city" | "sponsor";
+export type ScoreCriteriaPackageType = "b" | "c";
 
 export interface Database {
   public: {
@@ -63,12 +64,14 @@ export interface Database {
           id: string;
           organization_id: string;
           name: string;
+          quality_score: number;
           created_at: string;
         };
         Insert: {
           id?: string;
           organization_id: string;
           name: string;
+          quality_score?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["lead_sources"]["Insert"]>;
@@ -218,6 +221,7 @@ export interface Database {
           note: string | null;
           recorded_by: string | null;
           recorded_at: string;
+          run_id: string | null;
         };
         Insert: {
           id?: string;
@@ -228,6 +232,7 @@ export interface Database {
           note?: string | null;
           recorded_by?: string | null;
           recorded_at?: string;
+          run_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["relationship_scores"]["Insert"]>;
         Relationships: [];
@@ -282,6 +287,58 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["profile_event_links"]["Insert"]>;
         Relationships: [];
       };
+      score_criteria: {
+        Row: {
+          id: string;
+          organization_id: string;
+          package_type: ScoreCriteriaPackageType;
+          key: string;
+          label: string;
+          weight: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          package_type: ScoreCriteriaPackageType;
+          key: string;
+          label: string;
+          weight?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["score_criteria"]["Insert"]>;
+        Relationships: [];
+      };
+      score_components: {
+        Row: {
+          id: string;
+          organization_id: string;
+          profile_id: string;
+          criterion_key: string;
+          run_id: string;
+          value: number;
+          weight_applied: number;
+          explanation: string;
+          computed_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          profile_id: string;
+          criterion_key: string;
+          run_id: string;
+          value: number;
+          weight_applied: number;
+          explanation: string;
+          computed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["score_components"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -294,6 +351,10 @@ export interface Database {
         Returns: OrganizationRole;
       };
       is_admin_or_owner: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      is_platform_admin: {
         Args: Record<string, never>;
         Returns: boolean;
       };

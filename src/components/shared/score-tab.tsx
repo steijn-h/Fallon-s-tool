@@ -1,10 +1,19 @@
+import { CityScoreSection } from "@/components/packages/c/city-score-section";
+import { SponsorScoreSection } from "@/components/packages/b/sponsor-score-section";
 import { AddScoreForm } from "@/components/shared/add-score-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
+import type { PackageType } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
-export async function ScoreTab({ profileId }: { profileId: string }) {
+export async function ScoreTab({
+  profileId,
+  packageType,
+}: {
+  profileId: string;
+  packageType: PackageType;
+}) {
   const supabase = await createClient();
 
   const { data: history } = await supabase
@@ -58,6 +67,18 @@ export async function ScoreTab({ profileId }: { profileId: string }) {
           ))
         )}
       </div>
+
+      {packageType === "b" ? (
+        <div className="border-t border-border pt-4">
+          <SponsorScoreSection profileId={profileId} />
+        </div>
+      ) : null}
+
+      {packageType === "c" ? (
+        <div className="border-t border-border pt-4">
+          <CityScoreSection profileId={profileId} />
+        </div>
+      ) : null}
     </div>
   );
 }

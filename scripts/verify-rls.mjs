@@ -112,6 +112,57 @@ async function main() {
     );
   }
 
+  // 6. Sponsorscore/stadsscore tables (fase 2): User B's org (pakket b) has
+  //    seeded score_criteria + score_components, User A's org (pakket a)
+  //    has none of its own — so User A must see 0 rows, never User B's.
+  const { data: criteriaA } = await clientA.from("score_criteria").select("id, organization_id");
+  check(
+    "User A sees 0 score_criteria (pakket a has none, and Org B's must not leak)",
+    (criteriaA ?? []).length === 0,
+    `got ${(criteriaA ?? []).length} rows`,
+  );
+
+  const { data: criteriaB } = await clientB.from("score_criteria").select("id, organization_id");
+  check(
+    "User B sees only Org B's own score_criteria",
+    (criteriaB ?? []).length > 0 && (criteriaB ?? []).every((c) => c.organization_id === ORG_B.id),
+    `got organization_ids: ${[...new Set((criteriaB ?? []).map((c) => c.organization_id))]}`,
+  );
+
+  const { data: crossCriteria } = await clientA
+    .from("score_criteria")
+    .select("id")
+    .eq("organization_id", ORG_B.id);
+  check("User A querying Org B's score_criteria directly returns 0 rows", (crossCriteria ?? []).length === 0);
+
+  const { error: criteriaInsertError } = await clientA.from("score_criteria").insert({
+    organization_id: ORG_B.id,
+    package_type: "b",
+    key: "intrusion_attempt",
+    label: "RLS test intrusion attempt",
+  });
+  check(
+    "User A cannot INSERT a score_criteria row into Org B",
+    criteriaInsertError !== null,
+    criteriaInsertError ? undefined : "insert unexpectedly succeeded",
+  );
+
+  const { data: componentsA } = await clientA.from("score_components").select("id, organization_id");
+  check(
+    "User A sees 0 score_components (Org B's seeded components must not leak)",
+    (componentsA ?? []).length === 0,
+    `got ${(componentsA ?? []).length} rows`,
+  );
+
+  const { data: crossComponents } = await clientA
+    .from("score_components")
+    .select("id")
+    .eq("organization_id", ORG_B.id);
+  check(
+    "User A querying Org B's score_components directly returns 0 rows",
+    (crossComponents ?? []).length === 0,
+  );
+
   console.log(`\n${failures === 0 ? "All checks passed." : `${failures} check(s) FAILED.`}`);
   process.exit(failures === 0 ? 0 : 1);
 }

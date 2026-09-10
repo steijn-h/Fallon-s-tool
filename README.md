@@ -135,12 +135,112 @@ docs/
   RLS_TEST_PLAN.md
 scripts/
   verify-rls.mjs
+supabase/
+  create_platform_admin.sql   # eenmalig, handmatig uit te voeren (zie "Platform-admin" hieronder)
 ```
 
 `lib/packages/features.ts` is de **enige** plek die bepaalt welke tabs en
 velden een pakket laat zien. Nieuwe functionaliteit voor bijvoorbeeld pakket
 c hoort in `components/packages/c/` en `features.ts` — dat raakt pakket a en
 b niet.
+
+## Sponsorscore en stadsscore (fase 2)
+
+Pakket b krijgt een **sponsorscore**, pakket c een **stadsscore**. Beide zijn
+een gewogen gemiddelde van losse, zichtbare deelscores — nooit één
+ondoorzichtig getal.
+
+**Waar de gewichten staan.** Elke organisatie heeft eigen rijen in
+`score_criteria` (`key`, `label`, `weight`, `active`) voor haar pakket. Een
+gewicht aanpassen of een criterium tijdelijk uitzetten is een `UPDATE` op die
+tabel — geen codewijziging, geen migratie. Er is nog geen scherm om dat te
+doen (expliciet buiten scope van deze fase); tot die tijd via de Supabase
+SQL Editor of Table Editor. De startgewichten zijn gelijk verdeeld (1 per
+criterium) — zie `supabase/seed.sql` voor de exacte seed-waarden.
+
+**Hoe een berekening werkt.** Op het tabblad "Score" van een profiel (pakket
+b of c) staat een knop "Bereken score". Die roept
+`computeProfileScore()` (`lib/actions/scoring.ts`) aan, die:
+
+1. de actieve `score_criteria` van de organisatie ophaalt;
+2. per criterium de bijbehorende rekenfunctie uit `lib/scoring/calculate.ts`
+   aanroept (bv. `calculateTaskPunctuality`) — puur, geen database-toegang,
+   dus makkelijk te lezen en aan te passen zonder de fetch-logica te raken;
+3. een `run_id` genereert en alle deelscores wegschrijft naar
+   `score_components` (één rij per criterium, met `value`,
+   `weight_applied` — een momentopname van het toen geldende gewicht — en
+   een leesbare `explanation`);
+4. het gewogen totaal (`Σ(waarde × gewicht) / Σ(gewicht)`) wegschrijft naar
+   `relationship_scores` met `score_type = 'sponsor'` resp. `'city'` en
+   dezelfde `run_id`, zodat elke berekening herleidbaar blijft tot haar
+   deelscores.
+
+Herberekenen is te allen tijde veilig: het voegt alleen nieuwe rijen toe
+(zowel `score_components` als de `relationship_scores`-totaalrij zijn
+append-only), dus de volledige geschiedenis — en dus de trend — blijft
+zichtbaar. Een criterium-`key` waar geen rekenfunctie voor bestaat (bv. een
+later via een nog te bouwen beheerscherm toegevoegd eigen criterium) wordt
+overgeslagen in plaats van de berekening te laten crashen.
+
+**Welke deelscores er nu zijn:**
+
+| Pakket | Criterium-key | Betekenis |
+|---|---|---|
+| b, c | `relationship_trend` | Stijging/daling t.o.v. de vorige relatiescore-meting |
+| b | `task_punctuality` | % taken met deadline die op tijd zijn afgerond |
+| b | `sponsor_tenure` | Duur sinds aanmaken + hoe recent er nog activiteit was |
+| b, c | `event_engagement` / `event_contribution` | Aantal evenementkoppelingen, sponsor telt zwaarder dan lead |
+| c | `lead_source_quality` | Het `quality_score`-veld van de gekoppelde leadafkomst |
+
+`lead_source_quality` leest uit een nieuwe kolom `lead_sources.quality_score`
+(0-100, standaard 50) — dat is de "rangorde als configureerbare data" uit de
+opdracht: welke leadafkomst zwaarder weegt, staat in een gewone kolom, niet
+in een if/else in de code.
+
+## Platform-admin (cross-organisatie toegang)
+
+Er is een expliciet, klein mechanisme voor een intern account (bv.
+`fallontest`) dat dwars door alle organisaties heen mag kijken en werken —
+dit is een bewuste, beperkte uitzondering op de "één gebruiker = één
+organisatie"-isolatie die verder overal geldt, bedoeld voor eigen
+support/testaccounts, geen algemene rol.
+
+**Hoe het werkt.** Een tabel `platform_admins(user_id)` (migratie
+`20260910000018`) is de enige plek die bepaalt wie deze rechten heeft. Die
+tabel is zelf via geen enkele policy bereikbaar vanuit de app — alleen
+rechtstreeks in de database (SQL Editor/migratie) toe te voegen of te
+verwijderen. Elke bestaande RLS-policy is uitgebreid met
+`OR public.is_platform_admin()`, dus een platform-admin ziet en bewerkt écht
+elke organisatie's data — dit is getest door de policies lokaal toe te
+passen en te bevestigen dat het account rijen van meerdere organisaties in
+één query terugkrijgt én een profiel in een andere organisatie kan
+aanmaken, terwijl een gewone gebruiker nog steeds tot 0 rijen buiten de
+eigen organisatie beperkt blijft.
+
+Tabellen die voor iedereen append-only zijn (`notes`, `relationship_scores`,
+`score_components`) blijven dat ook voor een platform-admin — "alles kunnen
+doen" gaat niet zo ver dat audit-geschiedenis herschreven kan worden.
+
+**Account aanmaken.** Draai `supabase/create_platform_admin.sql` één keer
+handmatig (SQL Editor of `psql`) — pas eerst `admin_email` en vooral
+`admin_password` aan bovenin het script (een eigen, sterk wachtwoord; niet
+het gedeelde testwachtwoord uit `seed.sql`, want dit account kan bij alles).
+Rechten intrekken zonder het account te verwijderen: verwijder de rij voor
+die gebruiker uit `platform_admins` (zie de commentaarregel bovenin het
+script voor de exacte query).
+
+**Wat dit wel en niet doet in de UI.** De profieldetailpagina en de
+scoreberekening kijken naar het pakket van het **bekeken profiel**, niet
+naar de sessie van de kijker — dus een platform-admin die een profiel uit
+een pakket-c-organisatie opent, ziet gewoon de juiste (stadsscore-)tabs,
+ook al hoort de admin zelf bij een andere "thuis"-organisatie. De
+profielenlijst zelf is nog niet pakket-bewust gemaakt voor gemixte
+resultaten: omdat er geen expliciet `organization_id`-filter in die query
+zit, laat RLS voor een platform-admin gewoon élk profiel van élke
+organisatie zien (precies "alles zien"), maar de lijst zelf toont geen
+kolom "welke organisatie" — een eigen organisatie-overzicht/-wisselaar is
+een logische vervolgstap, nu bewust niet gebouwd om deze fase niet verder
+te laten uitdijen.
 
 ## Belangrijke ontwerpkeuzes
 
@@ -172,6 +272,25 @@ b niet.
   `email`/`full_name` staan hier gedenormaliseerd op (via een trigger vanuit
   `auth.users`, dat zelf niet los opvraagbaar is via de Supabase REST-laag) —
   nodig om "toegewezen aan" en "auteur" leesbaar te tonen in de UI.
+- **Totaalscore uitbreiden van `relationship_scores`, geen nieuwe
+  `computed_scores`-tabel.** `relationship_scores.score_type` liet vanaf
+  fase 1 al `'city'` en `'sponsor'` toe naast `'relationship'`, met precies
+  deze latere uitbreiding als reden (zie de code-comment in migratie
+  `20260910000010`). Het totaal van een sponsorscore/stadsscore-berekening
+  is dus gewoon een extra rij in dezelfde tabel, met een `run_id` (migratie
+  `20260910000016`) die 'm koppelt aan de bijbehorende `score_components`.
+  Dat hergebruikt de bestaande RLS-policies, dezelfde append-only garantie,
+  en dezelfde "geschiedenis = gewoon meer rijen"-aanpak als de handmatige
+  relatiescore — in plaats van een vrijwel identieke tweede tabel met eigen
+  policies te introduceren.
+- **`score_criteria` is per organisatie, niet één rij per pakket.** De
+  opdracht noemt `package_type` als kolom (en die staat er, met een trigger
+  die afdwingt dat 'ie klopt met de organisatie), maar de eigenlijke scope is
+  `organization_id` — elke organisatie krijgt haar eigen kopie van de
+  criteria-rijen (nu nog identiek geseed per pakket). Dat is nodig om de RLS
+  tussen twee organisaties met hetzelfde pakket zinvol te laten zijn, en
+  geeft een toekomstig beheerscherm meteen de ruimte om gewichten per
+  organisatie te laten afwijken, zonder dat het schema dan opnieuw moet.
 
 ## Waarom Supabase-migraties i.p.v. Drizzle
 
@@ -227,6 +346,41 @@ Supabase nabootst:
    tot een lege `public`-schema, mét de seed-data nog in de database.
 
 Dit dekt de kern van de oplevercriteria (RLS-afscherming, omkeerbare
-migraties) op databaseniveau. Doorklikken in de browser met een echte
-Supabase-instantie (stap "Snel starten" hierboven) blijft de laatste stap
-om ook de UI zelf te bevestigen.
+migraties) op databaseniveau. De UI zelf (inloggen, profielenlijst,
+pakketverschillen) is bevestigd te werken tegen een echte Supabase-cloud-
+database en een live Vercel-deployment (zie "Alternatief: volledig in de
+cloud").
+
+**Fase 2 (sponsorscore/stadsscore + platform-admin), zelfde aanpak:**
+
+7. Alle 5 nieuwe/aangepaste migraties (`score_criteria`, `score_components`,
+   `relationship_scores.run_id`, `lead_sources.quality_score`,
+   `platform_admins` met de 34 `ALTER POLICY`-statements erin) passen
+   foutloos toe bovenop de bestaande 13, inclusief de uitgebreide
+   `seed.sql`.
+8. Een query zoals de score-UI die uitvoert (laatste totaal +
+   bijbehorende `score_components` via `run_id`) geeft voor de geseede
+   voorbeeldprofielen (Cafe De Hoek → sponsorscore, Regiobank Noord →
+   stadsscore) precies de verwachte, samenhangende deelscores terug.
+9. Zonder platform-admin: gebruiker van Sportgala Events (pakket a) ziet 0
+   rijen in zowel `score_criteria` als `score_components` — noch haar eigen
+   (lege) set, noch die van Verenigingsdiensten BV lekt door; een gerichte
+   query op Verenigingsdiensten BV's `organization_id` en een `INSERT`
+   daarin worden beide geweigerd.
+10. Met platform-admin: het `fallontest`-account (aangemaakt via
+    `create_platform_admin.sql`) ziet in één query profielen uit alle 3
+    seed-organisaties tegelijk, ziet alle 4 `organizations`-rijen (incl. de
+    eigen), en kan succesvol een profiel aanmaken in een organisatie die niet
+    de eigen "thuis"-organisatie is — terwijl een gewone gebruiker in
+    dezelfde database nog steeds tot precies 1 organisatie beperkt blijft.
+11. Na het terugdraaien van de `platform_admins`-migratie verliest hetzelfde
+    account die cross-organisatie-toegang direct weer (terug naar 0
+    zichtbare organisaties buiten de eigen, lege thuis-organisatie) — de
+    rollback laat geen restbevoegdheid achter.
+12. Alle 5 fase-2-rollbacks (in omgekeerde volgorde, inclusief de 34
+    `ALTER POLICY`-restores) draaien schoon terug.
+
+Doorklikken in de browser met een echte Supabase-instantie (stap "Snel
+starten" hierboven) is voor deze fase nog niet apart herhaald na deze
+laatste toevoegingen — dat verdient een keer doorklikken door jou voor je
+live gaat, net als destijds bij fase 1.
