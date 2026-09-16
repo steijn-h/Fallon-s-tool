@@ -1,0 +1,104 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+
+import { ActivitiesTimeline } from "@/components/shared/activities-timeline";
+import { AssessmentSection } from "@/components/shared/assessment-section";
+import { DeleteSponsorshipButton } from "@/components/shared/delete-sponsorship-button";
+import { DeliverablesSection } from "@/components/shared/deliverables-section";
+import { PaymentsSection } from "@/components/shared/payments-section";
+import { RenewSponsorshipDialog } from "@/components/shared/renew-sponsorship-dialog";
+import { SponsorshipForm } from "@/components/shared/sponsorship-form";
+import { SponsorshipStatusSelect } from "@/components/shared/sponsorship-status-select";
+import { CompanyMark } from "@/components/shared/company-mark";
+import { TierBadge } from "@/components/shared/status-badges";
+import { findOwner, OwnerAvatar } from "@/components/shared/owner-avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { currency, durationYears } from "@/lib/format";
+import { createClient } from "@/lib/supabase/server";
+import type { ArchetypeId } from "@/lib/types";
+
+export default async function SponsorshipDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: sponsorship } = await supabase.from("sponsorships").select("*").eq("id", id).single();
+
+  if (!sponsorship) {
+    notFound();
+  }
+
+  const { data: owners } = await supabase.from("owners").select("*").order("name");
+  const owner = findOwner(owners ?? [], sponsorship.owner_id);
+  const years = durationYears(sponsorship.start_date, sponsorship.end_date);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Link
+        href="/sponsorschappen"
+        className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" /> Terug naar sponsorschappen
+      </Link>
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <CompanyMark name={sponsorship.company} color={sponsorship.logo_color} className="size-11" />
+          <div>
+            <h1 className="font-display text-xl font-semibold">{sponsorship.company}</h1>
+            <div className="mt-1 flex items-center gap-2">
+              <TierBadge tier={sponsorship.tier} />
+              <span className="text-sm text-muted-foreground">
+                {currency(sponsorship.value)} · {years.toFixed(1)} jaar looptijd
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <OwnerAvatar owner={owner} showName />
+          <SponsorshipStatusSelect sponsorshipId={sponsorship.id} status={sponsorship.status} />
+          <RenewSponsorshipDialog
+            sponsorshipId={sponsorship.id}
+            currentEndDate={sponsorship.end_date}
+            currentValue={sponsorship.value}
+          />
+          <DeleteSponsorshipButton sponsorshipId={sponsorship.id} />
+        </div>
+      </div>
+
+      <Card>
+        <CardContent>
+          <Tabs defaultValue="overzicht">
+            <TabsList>
+              <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
+              <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
+              <TabsTrigger value="betalingen">Betalingen</TabsTrigger>
+              <TabsTrigger value="activiteiten">Activiteiten</TabsTrigger>
+              <TabsTrigger value="beoordeling">Beoordeling</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overzicht">
+              <SponsorshipForm sponsorship={sponsorship} owners={owners ?? []} />
+            </TabsContent>
+            <TabsContent value="deliverables">
+              <DeliverablesSection sponsorshipId={sponsorship.id} />
+            </TabsContent>
+            <TabsContent value="betalingen">
+              <PaymentsSection sponsorshipId={sponsorship.id} />
+            </TabsContent>
+            <TabsContent value="activiteiten">
+              <ActivitiesTimeline sponsorshipId={sponsorship.id} />
+            </TabsContent>
+            <TabsContent value="beoordeling">
+              <AssessmentSection
+                sponsorshipId={sponsorship.id}
+                archetypeId={sponsorship.archetype_id as ArchetypeId | null}
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

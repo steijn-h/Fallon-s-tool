@@ -1,27 +1,16 @@
-# RLS-testplan: afscherming tussen organisaties
+# RLS-testplan: alleen ingelogde staf heeft toegang
 
-Doel: aantonen dat een gebruiker van organisatie X nooit data van organisatie
-Y kan zien of wijzigen — afgedwongen door Postgres Row Level Security, niet
-door applicatiecode.
+SponsorHub is een single-tenant app voor één club: elke ingelogde
+staf-account heeft gelijke, volledige toegang tot alle data. Er is dus geen
+"organisatie X versus Y"-afscherming zoals in een multi-tenant systeem — wat
+RLS hier moet garanderen is simpeler maar net zo belangrijk: **niemand die
+niet is ingelogd kan ook maar iets lezen of schrijven.**
 
 ## Voorbereiding
 
-1. Start een lokale Supabase-instantie en pas migraties + seed toe:
-   ```bash
-   supabase start
-   supabase db reset
-   ```
-2. Kopieer `.env.example` naar `.env.local` en vul de lokale `anon key` in
-   (`supabase status` toont deze).
-
-De seed (`supabase/seed.sql`) maakt drie organisaties aan, één per pakket,
-elk met eigen gebruikers. Alle wachtwoorden zijn `Wachtwoord123!`.
-
-| Organisatie | Pakket | Gebruiker (rol) |
-|---|---|---|
-| Sportgala Events | a — Evenementen | sanne@sportgala-events.test (owner), bram@sportgala-events.test (member) |
-| Verenigingsdiensten BV | b — Standaard | fatima@verenigingsdiensten.test (owner) |
-| Citymarketing Regio Noord | c — Citymarketing | daan@citymarketing-noord.test (owner), lotte@citymarketing-noord.test (member) |
+1. Zorg dat de migraties zijn toegepast (`supabase db push` of, lokaal,
+   `supabase db reset`).
+2. Kopieer `.env.example` naar `.env.local` en vul de `anon key` in.
 
 ## Optie 1 — geautomatiseerd script
 
@@ -29,65 +18,45 @@ elk met eigen gebruikers. Alle wachtwoorden zijn `Wachtwoord123!`.
 node --env-file=.env.local scripts/verify-rls.mjs
 ```
 
-Het script logt in als een gebruiker van Sportgala Events (pakket a) én een
-gebruiker van Verenigingsdiensten BV (pakket b), en controleert:
+Dit controleert, zonder in te loggen:
 
-1. Elke gebruiker ziet in `profiles` uitsluitend rijen van de eigen organisatie.
-2. Expliciet filteren op het `organization_id` van de andere organisatie levert 0 rijen op (geen foutmelding — RLS filtert stil).
-3. De `organizations`-rij van de andere organisatie is niet leesbaar.
-4. Een nieuw profiel aanmaken met het `organization_id` van de andere organisatie mislukt (RLS `WITH CHECK`-schending).
-5. Een bestaand profiel van de andere organisatie bijwerken (op basis van het echte `id`) raakt 0 rijen.
-6. Dezelfde afscherming geldt voor de sponsorscore-/stadsscore-tabellen uit
-   fase 2: de gebruiker van Sportgala Events (pakket a, dus zonder eigen
-   criteria) ziet 0 rijen in zowel `score_criteria` als `score_components`
-   — Verenigingsdiensten BV's eigen criteria lekken niet door — en kan er
-   ook niets in aanmaken.
+1. Een anonieme cliënt krijgt 0 rijen terug bij het lezen van `prospects`,
+   `sponsorships`, `owners`, `handles` en `pipeline_stages`.
+2. Een anonieme cliënt kan geen nieuwe rij in `prospects` aanmaken.
 
-Alle checks moeten "PASS" tonen. Het script eindigt met exit-code 1 zodra er
-iets faalt, zodat het ook in CI te gebruiken is.
+Wil je ook de andere kant bevestigen (een ingelogde gebruiker kan wél bij de
+data), geef dan een echt staf-account mee:
 
-**Platform-admin is een bewuste, geteste uitzondering op dit testplan.**
-Het `fallontest`-mechanisme (zie README, sectie "Platform-admin") laat één
-expliciet toegevoegd account juist wél dwars door alle organisaties heen
-kijken. Dat wordt niet door dit script gecontroleerd (dat zou de bovenstaande
-checks tegenspreken) — de RLS-bypass zelf is apart geverifieerd door lokaal
-te bevestigen dat (a) een account in `platform_admins` rijen van meerdere
-organisaties tegelijk teruggeeft en er ook in kan schrijven, en (b) een
-account dat niet in die tabel staat — inclusief na het weer verwijderen van
-zo'n rij — direct terug is tot de normale isolatie van precies 1 organisatie.
+```bash
+TEST_USER_EMAIL=jij@club.test TEST_USER_PASSWORD=... \
+  node --env-file=.env.local scripts/verify-rls.mjs
+```
+
+Dan wordt ook gecontroleerd dat dat account alle tabellen zonder RLS-fout
+kan bevragen.
 
 ## Optie 2 — handmatig via de UI
 
-1. Log in de browser in als `sanne@sportgala-events.test`. Noteer de
-   zichtbare profielen op `/profiles` (Sportgala Events: FC Middenveld,
-   Bakkerij De Korenaar, Oude Sponsor BV — gearchiveerd).
-2. Log uit en log in als `fatima@verenigingsdiensten.test`. Controleer dat
-   geen van de Sportgala-profielen zichtbaar is, en dat alleen
-   Verenigingsdiensten-profielen (Buurtvereniging Zonnehof, Cafe De Hoek)
-   verschijnen.
-3. Probeer een profiel-URL van de andere organisatie rechtstreeks te openen
-   (kopieer bijvoorbeeld het `id` van "FC Middenveld" uit stap 1 en plak dat
-   in `/profiles/<id>` terwijl je als Fatima bent ingelogd) — dit moet een
-   "niet gevonden"-pagina geven, nooit de data zelf.
-4. Herhaal desgewenst met de citymarketing-organisatie
-   (`daan@citymarketing-noord.test`) om ook pakket c te controleren.
+1. Open de site **uitgelogd** (of in een incognitovenster) en probeer een
+   URL binnen de app te openen, bijvoorbeeld `/acquisitie`. Je moet naar
+   `/login` worden gestuurd, nooit data te zien krijgen.
+2. Log in met een staf-account en bevestig dat je gewoon bij alle
+   onderdelen kunt (Dashboard, Acquisitie, Sponsorschappen, etc.).
 
-## Optie 3 — losse SQL-check (voor wie liever direct in de database kijkt)
+## Optie 3 — losse SQL-check
 
-Verbind met `psql` als de `authenticated`-rol met een user-JWT (via de
-Supabase Studio SQL-editor met "Run as" ingesteld op een test-gebruiker), en
-voer uit:
+In de Supabase SQL Editor, met "Run as" op de `anon`-rol (niet ingelogd):
 
 ```sql
-select organization_id, count(*) from public.profiles group by 1;
+select count(*) from public.prospects;
 ```
 
-Dit mag altijd precies één `organization_id` teruggeven: die van de
-ingelogde gebruiker.
+Dit moet altijd `0` teruggeven — nooit een foutmelding over een
+niet-bestaande tabel, en nooit een aantal groter dan 0.
 
-## Wat dit *niet* test
+## Wat dit niet test
 
-Dit testplan verifieert tenant-isolatie (organisatie X vs. Y). Het test niet
-de rolverschillen binnen één organisatie (owner/admin/member) — dat is een
-kleinere, losstaande policy-check die met dezelfde aanpak (inloggen als een
-`member`-gebruiker en een admin-only actie proberen) kan worden uitgevoerd.
+Dit testplan verifieert de authenticatie-grens (ingelogd vs. niet). Alle
+ingelogde stafleden hebben bewust gelijke rechten — er is geen rollen- of
+organisatiescheiding meer om te testen, in tegenstelling tot een eerdere,
+inmiddels vervangen versie van dit platform.

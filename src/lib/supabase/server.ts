@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 import type { Database } from "./database.types";
 
 // Used in Server Components, Server Actions and Route Handlers. All data
-// access for the signed-in user must go through this client so Postgres RLS
-// (organization_id / role) is the thing enforcing tenant isolation — never
-// the anon/service-role key from client-side code.
+// access must go through this client so Postgres RLS (authenticated-only)
+// is what keeps the app closed to signed-out visitors — never the
+// service-role key from client-side code.
 export async function createClient() {
   const cookieStore = await cookies();
 

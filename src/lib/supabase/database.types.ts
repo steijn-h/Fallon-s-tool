@@ -1,364 +1,388 @@
-// Hand-written to mirror supabase/migrations/*.sql exactly.
-//
-// In a normal workflow this file is generated with:
-//   supabase gen types typescript --project-id <id> > src/lib/supabase/database.types.ts
-// That command needs a reachable Supabase project, which this sandbox does
-// not have network access to. Keep this file in sync by hand whenever a
-// migration changes the schema — the shape (Tables.<name>.Row/Insert/Update)
-// matches what the CLI would produce, so swapping in a generated file later
-// is a drop-in replacement.
+// Hand-written to mirror supabase/migrations/*.sql exactly (see the note in
+// the fase-1 migrations for why this is hand-written rather than CLI-
+// generated in this environment). Keep in sync by hand whenever a migration
+// changes the schema.
 
-export type PackageType = "a" | "b" | "c";
-export type OrganizationRole = "owner" | "admin" | "member";
-export type ProfileStatus = "lead" | "prospect" | "sponsor" | "inactive";
-export type TaskStatus = "open" | "in_progress" | "done";
-export type ProfileEventRole = "lead" | "sponsor";
-export type ScoreType = "relationship" | "city" | "sponsor";
-export type ScoreCriteriaPackageType = "b" | "c";
+import type {
+  ActivityType,
+  ContactType,
+  DeliverableStatus,
+  HandleCategory,
+  LeadWarmth,
+  OrganizationSize,
+  PaymentStatus,
+  PipelineStageType,
+  SponsorshipStatus,
+  SponsorshipTier,
+  TaskPriority,
+} from "@/lib/types";
 
 export interface Database {
   public: {
     Tables: {
-      organizations: {
-        Row: {
-          id: string;
-          name: string;
-          package_type: PackageType;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          package_type: PackageType;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["organizations"]["Insert"]>;
+      owners: {
+        Row: { id: string; name: string; initials: string; color: string; created_at: string };
+        Insert: { id?: string; name: string; initials: string; color: string; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["owners"]["Insert"]>;
         Relationships: [];
       };
-      organization_members: {
+      pipeline_stages: {
         Row: {
           id: string;
-          organization_id: string;
-          user_id: string;
-          role: OrganizationRole;
-          email: string | null;
-          full_name: string | null;
+          label: string;
+          color: string;
+          type: PipelineStageType;
+          sort_order: number;
           created_at: string;
         };
         Insert: {
-          id?: string;
-          organization_id: string;
-          user_id: string;
-          role: OrganizationRole;
-          email?: string | null;
-          full_name?: string | null;
+          id: string;
+          label: string;
+          color: string;
+          type: PipelineStageType;
+          sort_order: number;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["organization_members"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["pipeline_stages"]["Insert"]>;
         Relationships: [];
       };
-      lead_sources: {
+      prospects: {
         Row: {
           id: string;
-          organization_id: string;
-          name: string;
-          quality_score: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          quality_score?: number;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["lead_sources"]["Insert"]>;
-        Relationships: [];
-      };
-      archetypes: {
-        Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          description: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          description?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["archetypes"]["Insert"]>;
-        Relationships: [];
-      };
-      profiles: {
-        Row: {
-          id: string;
-          organization_id: string;
+          company: string;
+          industry: string;
+          website: string | null;
+          logo_color: string;
+          stage_id: string;
+          est_value: number;
+          probability: number;
+          owner_id: string | null;
+          notes: string | null;
+          next_step: string | null;
+          next_step_due: string | null;
+          tags: string[];
+          source: string | null;
           archetype_id: string | null;
-          status: ProfileStatus;
-          organization_name: string;
-          contact_name: string | null;
-          street: string | null;
-          house_number: string | null;
-          postal_code: string | null;
+          company_type: string | null;
+          lead_warmth: LeadWarmth;
+          success_ratio: number;
+          organization_size: OrganizationSize | null;
+          size_based_chance: number;
           city: string | null;
-          phone: string | null;
-          email: string | null;
-          custom_fields: Record<string, unknown>;
-          archived_at: string | null;
-          created_by: string | null;
+          dmu_name: string | null;
+          dmu_phone: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          organization_id: string;
+          company: string;
+          industry: string;
+          website?: string | null;
+          logo_color?: string;
+          stage_id: string;
+          est_value?: number;
+          probability?: number;
+          owner_id?: string | null;
+          notes?: string | null;
+          next_step?: string | null;
+          next_step_due?: string | null;
+          tags?: string[];
+          source?: string | null;
           archetype_id?: string | null;
-          status?: ProfileStatus;
-          organization_name: string;
-          contact_name?: string | null;
-          street?: string | null;
-          house_number?: string | null;
-          postal_code?: string | null;
+          company_type?: string | null;
+          lead_warmth?: LeadWarmth;
+          success_ratio?: number;
+          organization_size?: OrganizationSize | null;
+          size_based_chance?: number;
           city?: string | null;
-          phone?: string | null;
-          email?: string | null;
-          custom_fields?: Record<string, unknown>;
-          archived_at?: string | null;
-          created_by?: string | null;
+          dmu_name?: string | null;
+          dmu_phone?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["prospects"]["Insert"]>;
         Relationships: [];
       };
-      profile_lead_source: {
+      prospect_contacts: {
         Row: {
           id: string;
-          organization_id: string;
-          profile_id: string;
-          lead_source_id: string;
-          note: string | null;
-          recorded_by: string | null;
-          recorded_at: string;
+          prospect_id: string;
+          name: string;
+          role: string | null;
+          email: string | null;
+          phone: string | null;
         };
         Insert: {
           id?: string;
-          organization_id?: string;
-          profile_id: string;
-          lead_source_id: string;
-          note?: string | null;
-          recorded_by?: string | null;
-          recorded_at?: string;
+          prospect_id: string;
+          name: string;
+          role?: string | null;
+          email?: string | null;
+          phone?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["profile_lead_source"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["prospect_contacts"]["Insert"]>;
+        Relationships: [];
+      };
+      prospect_phone_numbers: {
+        Row: { id: string; prospect_id: string; name: string; number: string };
+        Insert: { id?: string; prospect_id: string; name: string; number: string };
+        Update: Partial<Database["public"]["Tables"]["prospect_phone_numbers"]["Insert"]>;
+        Relationships: [];
+      };
+      conversation_logs: {
+        Row: {
+          id: string;
+          prospect_id: string;
+          log_date: string;
+          contact_type: ContactType;
+          summary: string;
+          content: string | null;
+          author_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          prospect_id: string;
+          log_date?: string;
+          contact_type: ContactType;
+          summary: string;
+          content?: string | null;
+          author_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["conversation_logs"]["Insert"]>;
         Relationships: [];
       };
       tasks: {
         Row: {
           id: string;
-          organization_id: string;
-          profile_id: string;
+          prospect_id: string;
           title: string;
           description: string | null;
-          assigned_to: string | null;
-          status: TaskStatus;
           due_date: string | null;
+          priority: TaskPriority;
+          completed: boolean;
           completed_at: string | null;
-          created_by: string | null;
           created_at: string;
-          updated_at: string;
         };
         Insert: {
           id?: string;
-          organization_id?: string;
-          profile_id: string;
+          prospect_id: string;
           title: string;
           description?: string | null;
-          assigned_to?: string | null;
-          status?: TaskStatus;
           due_date?: string | null;
+          priority?: TaskPriority;
+          completed?: boolean;
           completed_at?: string | null;
-          created_by?: string | null;
           created_at?: string;
-          updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
         Relationships: [];
       };
-      notes: {
+      sponsorships: {
         Row: {
           id: string;
-          organization_id: string;
-          profile_id: string;
-          author_id: string | null;
-          body: string;
+          prospect_id: string | null;
+          renewed_from_id: string | null;
+          company: string;
+          industry: string;
+          website: string | null;
+          logo_color: string;
+          tier: SponsorshipTier;
+          status: SponsorshipStatus;
+          value: number;
+          start_date: string;
+          end_date: string;
+          owner_id: string | null;
+          notes: string | null;
+          tags: string[];
+          archetype_id: string | null;
+          return_focus: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          prospect_id?: string | null;
+          renewed_from_id?: string | null;
+          company: string;
+          industry: string;
+          website?: string | null;
+          logo_color?: string;
+          tier: SponsorshipTier;
+          status?: SponsorshipStatus;
+          value?: number;
+          start_date: string;
+          end_date: string;
+          owner_id?: string | null;
+          notes?: string | null;
+          tags?: string[];
+          archetype_id?: string | null;
+          return_focus?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sponsorships"]["Insert"]>;
+        Relationships: [];
+      };
+      sponsorship_contacts: {
+        Row: {
+          id: string;
+          sponsorship_id: string;
+          name: string;
+          role: string | null;
+          email: string | null;
+          phone: string | null;
+        };
+        Insert: {
+          id?: string;
+          sponsorship_id: string;
+          name: string;
+          role?: string | null;
+          email?: string | null;
+          phone?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["sponsorship_contacts"]["Insert"]>;
+        Relationships: [];
+      };
+      deliverables: {
+        Row: {
+          id: string;
+          sponsorship_id: string;
+          title: string;
+          description: string | null;
+          status: DeliverableStatus;
+          due_date: string | null;
+          completed_at: string | null;
+          value: number | null;
           created_at: string;
         };
         Insert: {
           id?: string;
-          organization_id?: string;
-          profile_id: string;
-          author_id?: string | null;
-          body: string;
+          sponsorship_id: string;
+          title: string;
+          description?: string | null;
+          status?: DeliverableStatus;
+          due_date?: string | null;
+          completed_at?: string | null;
+          value?: number | null;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["notes"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["deliverables"]["Insert"]>;
         Relationships: [];
       };
-      relationship_scores: {
+      activities: {
         Row: {
           id: string;
-          organization_id: string;
-          profile_id: string;
-          score_type: ScoreType;
+          sponsorship_id: string;
+          type: ActivityType;
+          title: string;
+          description: string | null;
+          occurred_at: string;
+          author_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sponsorship_id: string;
+          type: ActivityType;
+          title: string;
+          description?: string | null;
+          occurred_at?: string;
+          author_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["activities"]["Insert"]>;
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: string;
+          sponsorship_id: string;
+          invoice_no: string | null;
+          amount: number;
+          due_date: string;
+          paid_at: string | null;
+          status: PaymentStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sponsorship_id: string;
+          invoice_no?: string | null;
+          amount: number;
+          due_date: string;
+          paid_at?: string | null;
+          status?: PaymentStatus;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
+        Relationships: [];
+      };
+      handles: {
+        Row: {
+          id: string;
+          name: string;
+          category: HandleCategory;
+          description: string | null;
+          weight: number;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          category: HandleCategory;
+          description?: string | null;
+          weight?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["handles"]["Insert"]>;
+        Relationships: [];
+      };
+      assessment_scores: {
+        Row: {
+          id: string;
+          sponsorship_id: string;
+          handle_id: string;
           score: number;
           note: string | null;
-          recorded_by: string | null;
-          recorded_at: string;
-          run_id: string | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
-          organization_id?: string;
-          profile_id: string;
-          score_type?: ScoreType;
+          sponsorship_id: string;
+          handle_id: string;
           score: number;
           note?: string | null;
-          recorded_by?: string | null;
-          recorded_at?: string;
-          run_id?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["relationship_scores"]["Insert"]>;
-        Relationships: [];
-      };
-      events: {
-        Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          description: string | null;
-          location: string | null;
-          start_date: string | null;
-          end_date: string | null;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          description?: string | null;
-          location?: string | null;
-          start_date?: string | null;
-          end_date?: string | null;
-          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["assessment_scores"]["Insert"]>;
         Relationships: [];
       };
-      profile_event_links: {
+      year_targets: {
         Row: {
-          id: string;
-          organization_id: string;
-          profile_id: string;
-          event_id: string;
-          role: ProfileEventRole;
-          created_by: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id?: string;
-          profile_id: string;
-          event_id: string;
-          role: ProfileEventRole;
-          created_by?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["profile_event_links"]["Insert"]>;
-        Relationships: [];
-      };
-      score_criteria: {
-        Row: {
-          id: string;
-          organization_id: string;
-          package_type: ScoreCriteriaPackageType;
-          key: string;
-          label: string;
-          weight: number;
-          active: boolean;
-          created_at: string;
+          id: number;
+          sponsor_count: number;
+          sponsor_amount: number;
+          renewal_rate: number;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          organization_id: string;
-          package_type: ScoreCriteriaPackageType;
-          key: string;
-          label: string;
-          weight?: number;
-          active?: boolean;
-          created_at?: string;
+          id?: number;
+          sponsor_count?: number;
+          sponsor_amount?: number;
+          renewal_rate?: number;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["score_criteria"]["Insert"]>;
-        Relationships: [];
-      };
-      score_components: {
-        Row: {
-          id: string;
-          organization_id: string;
-          profile_id: string;
-          criterion_key: string;
-          run_id: string;
-          value: number;
-          weight_applied: number;
-          explanation: string;
-          computed_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id?: string;
-          profile_id: string;
-          criterion_key: string;
-          run_id: string;
-          value: number;
-          weight_applied: number;
-          explanation: string;
-          computed_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["score_components"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["year_targets"]["Insert"]>;
         Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: {
-      current_organization_id: {
-        Args: Record<string, never>;
-        Returns: string;
-      };
-      current_role: {
-        Args: Record<string, never>;
-        Returns: OrganizationRole;
-      };
-      is_admin_or_owner: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-      is_platform_admin: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-    };
+    Functions: Record<string, never>;
     Enums: Record<string, never>;
   };
 }

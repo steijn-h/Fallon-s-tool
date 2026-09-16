@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --card: #ffffff;
-  --card-foreground: #0a0a0a;
-  --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-  --primary: #171717;
-  --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #171717;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #171717;
-  --destructive: #dc2626;
-  --destructive-foreground: #fafafa;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #a1a1aa;
-  --radius: 0.5rem;
+  --background: 270 40% 99%;
+  --foreground: 271 76% 28%;
+  --card: 0 0% 100%;
+  --card-foreground: 271 76% 28%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 271 76% 28%;
+
+  --primary: 25 95% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 270 30% 96%;
+  --secondary-foreground: 271 76% 28%;
+  --muted: 270 25% 95%;
+  --muted-foreground: 271 14% 46%;
+
+  /* Accent drives ordinary hover/selected states across the UI (menu items,
+     table rows, ...) — kept a calm soft purple rather than the brand red, so
+     "red" reads as a deliberate signal (risk, cancelled, "heet" lead) instead
+     of the color of every hover state in the app. */
+  --accent: 270 30% 93%;
+  --accent-foreground: 271 76% 28%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 152 56% 42%;
+  --success-foreground: 0 0% 100%;
+
+  --border: 270 22% 90%;
+  --input: 270 22% 90%;
+  --ring: 25 95% 53%;
+  --radius: 0.65rem;
+
+  --sidebar-background: 270 35% 97%;
+  --sidebar-foreground: 271 76% 28%;
+  --sidebar-primary: 25 95% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 270 30% 93%;
+  --sidebar-accent-foreground: 271 76% 28%;
+  --sidebar-border: 270 22% 90%;
 }
 
 @theme inline {
@@ -40,18 +58,61 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-space-grotesk);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  background-image:
+    radial-gradient(ellipse 700px 500px at 100% -5%, hsl(271 76% 40% / 0.05), transparent),
+    radial-gradient(ellipse 700px 500px at -5% 105%, hsl(25 95% 53% / 0.05), transparent);
+  background-attachment: fixed;
+}
+
+.font-display {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.glass {
+  background: hsl(var(--card) / 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--border));
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(hsl(var(--border) / 0.6) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border) / 0.6) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.shadow-brand {
+  box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.35);
+}
+
+.text-gradient-brand {
+  background-image: linear-gradient(90deg, hsl(var(--foreground)), hsl(var(--primary)));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
