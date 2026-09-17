@@ -23,13 +23,14 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: sponsorship } = await supabase.from("sponsorships").select("*").eq("id", id).single();
+  const [{ data: sponsorship }, { data: owners }] = await Promise.all([
+    supabase.from("sponsorships").select("*").eq("id", id).single(),
+    supabase.from("owners").select("*").order("name"),
+  ]);
 
   if (!sponsorship) {
     notFound();
   }
-
-  const { data: owners } = await supabase.from("owners").select("*").order("name");
   const owner = findOwner(owners ?? [], sponsorship.owner_id);
   const years = durationYears(sponsorship.start_date, sponsorship.end_date);
 

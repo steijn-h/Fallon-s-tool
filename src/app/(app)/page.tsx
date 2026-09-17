@@ -21,6 +21,7 @@ export default async function DashboardPage() {
     { data: targets },
     { data: openTasks },
     { data: recentActivities },
+    { data: paidPayments },
   ] = await Promise.all([
     supabase.from("prospects").select("id, company, est_value, probability, stage_id"),
     supabase
@@ -39,6 +40,7 @@ export default async function DashboardPage() {
       .select("id, title, type, occurred_at, sponsorship_id")
       .order("occurred_at", { ascending: false })
       .limit(6),
+    supabase.from("payments").select("amount").eq("status", "paid"),
   ]);
 
   const taskProspectIds = [...new Set((openTasks ?? []).map((t) => t.prospect_id))];
@@ -83,10 +85,6 @@ export default async function DashboardPage() {
     (s) => new Date(s.startDate).getFullYear() === currentYear,
   ).length;
 
-  const { data: paidPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .eq("status", "paid");
   const totalCollected = (paidPayments ?? []).reduce((sum, p) => sum + p.amount, 0);
 
   const renewalRate = computeRenewalRate(sponsorships as Sponsorship[], currentYear);

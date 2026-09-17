@@ -18,19 +18,23 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: prospect } = await supabase.from("prospects").select("*").eq("id", id).single();
+  const [
+    { data: prospect },
+    { data: contacts },
+    { data: phoneNumbers },
+    { data: stages },
+    { data: owners },
+  ] = await Promise.all([
+    supabase.from("prospects").select("*").eq("id", id).single(),
+    supabase.from("prospect_contacts").select("*").eq("prospect_id", id),
+    supabase.from("prospect_phone_numbers").select("*").eq("prospect_id", id),
+    supabase.from("pipeline_stages").select("*").order("sort_order"),
+    supabase.from("owners").select("*").order("name"),
+  ]);
 
   if (!prospect) {
     notFound();
   }
-
-  const [{ data: contacts }, { data: phoneNumbers }, { data: stages }, { data: owners }] =
-    await Promise.all([
-      supabase.from("prospect_contacts").select("*").eq("prospect_id", id),
-      supabase.from("prospect_phone_numbers").select("*").eq("prospect_id", id),
-      supabase.from("pipeline_stages").select("*").order("sort_order"),
-      supabase.from("owners").select("*").order("name"),
-    ]);
 
   const archetype = archetypeById(prospect.archetype_id as ArchetypeId | null);
 
