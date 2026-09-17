@@ -31,10 +31,17 @@ platform; zie "Geschiedenis van dit project" onderaan).
    # vul NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_ANON_KEY in
    ```
 4. **Een staf-account aanmaken.** Er wordt bewust geen testgebruiker
-   geseed — maak je eigen account aan via de Supabase-dashboard
-   (Authentication → Add user) of de SQL Editor. Zelfregistratie staat uit
-   (`enable_signup = false` in `supabase/config.toml`) omdat dit een
-   besloten, intern hulpmiddel is, geen publieke app.
+   geseed. Zelfregistratie staat uit (`enable_signup = false` in
+   `supabase/config.toml`) omdat dit een besloten, intern hulpmiddel is,
+   geen publieke app — dus een account aanmaken kan niet via het
+   inlogscherm zelf. Twee opties:
+   - Via de Supabase-dashboard: Authentication → Add user.
+   - Via het meegeleverde script (heeft de **service role key** nodig, niet
+     de anon key — zet die alleen lokaal in `.env.local`, nooit committen):
+     ```bash
+     node --env-file=.env.local scripts/create-test-user.mjs jij@club.test EenSterkWachtwoord123
+     ```
+     Dit maakt direct een bevestigd account aan, zonder bevestigingsmail.
 5. **App starten**
    ```bash
    npm run dev
