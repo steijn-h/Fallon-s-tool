@@ -1,0 +1,134 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CompanyMark } from "@/components/shared/company-mark";
+import { findOwner, OwnerAvatar } from "@/components/shared/owner-avatar";
+import { StatusBadge, TierBadge } from "@/components/shared/status-badges";
+import { compactCurrency, formatDate } from "@/lib/format";
+import { STATUS_META, type SponsorshipStatus, type SponsorshipTier } from "@/lib/types";
+import type { Database } from "@/lib/supabase/database.types";
+
+type SponsorshipRow = Pick<
+  Database["public"]["Tables"]["sponsorships"]["Row"],
+  "id" | "company" | "industry" | "logo_color" | "tier" | "status" | "value" | "start_date" | "end_date" | "owner_id"
+>;
+type OwnerRow = Database["public"]["Tables"]["owners"]["Row"];
+
+const TIERS: SponsorshipTier[] = ["Platinum", "Gold", "Silver", "Bronze", "Partner"];
+
+export function SponsorshipsTable({
+  sponsorships,
+  owners,
+}: {
+  sponsorships: SponsorshipRow[];
+  owners: OwnerRow[];
+}) {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<SponsorshipStatus | "all">("all");
+  const [tierFilter, setTierFilter] = useState<SponsorshipTier | "all">("all");
+
+  const filtered = sponsorships.filter((s) => {
+    if (search && !s.company.toLowerCase().includes(search.toLowerCase())) return false;
+    if (statusFilter !== "all" && s.status !== statusFilter) return false;
+    if (tierFilter !== "all" && s.tier !== tierFilter) return false;
+    return true;
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Zoek op bedrijfsnaam..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-56"
+        />
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as SponsorshipStatus | "all")}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle statussen</SelectItem>
+            {Object.entries(STATUS_META).map(([value, meta]) => (
+              <SelectItem key={value} value={value}>
+                {meta.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={tierFilter} onValueChange={(v) => setTierFilter(v as SponsorshipTier | "all")}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Pakket" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle pakketten</SelectItem>
+            {TIERS.map((tier) => (
+              <SelectItem key={tier} value={tier}>
+                {tier}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="rounded-lg border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Bedrijf</TableHead>
+              <TableHead>Pakket</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Waarde</TableHead>
+              <TableHead>Looptijd</TableHead>
+              <TableHead>Dealverantwoordelijke</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  Geen sponsorschappen gevonden.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell>
+                    <Link href={`/sponsorschappen/${s.id}`} className="flex items-center gap-2 font-medium hover:underline">
+                      <CompanyMark name={s.company} color={s.logo_color} className="size-7 text-xs" />
+                      {s.company}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <TierBadge tier={s.tier} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={s.status} />
+                  </TableCell>
+                  <TableCell>{compactCurrency(s.value)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(s.start_date)} – {formatDate(s.end_date)}
+                  </TableCell>
+                  <TableCell>
+                    <OwnerAvatar owner={findOwner(owners, s.owner_id)} size="sm" showName />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
