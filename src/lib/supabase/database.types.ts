@@ -2,6 +2,11 @@
 // the fase-1 migrations for why this is hand-written rather than CLI-
 // generated in this environment). Keep in sync by hand whenever a migration
 // changes the schema.
+//
+// Every tenant-scoped table carries an `organization_id` column with a
+// database default of `current_organization_id()` (resolved from the
+// caller's JWT) — so it's typed as optional on Insert, same as `id`, even
+// though the column itself is NOT NULL.
 
 import type {
   ActivityType,
@@ -17,18 +22,78 @@ import type {
   TaskPriority,
 } from "@/lib/types";
 
+export type PackageType = "a" | "b" | "c";
+export type OrganizationRole = "owner" | "admin" | "member";
+
 export interface Database {
   public: {
     Tables: {
+      organizations: {
+        Row: {
+          id: string;
+          name: string;
+          package_type: PackageType;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          package_type?: PackageType;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["organizations"]["Insert"]>;
+        Relationships: [];
+      };
+      organization_members: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          role: OrganizationRole;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          role: OrganizationRole;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["organization_members"]["Insert"]>;
+        Relationships: [];
+      };
+      platform_admins: {
+        Row: { user_id: string; note: string | null; created_at: string };
+        Insert: { user_id: string; note?: string | null; created_at?: string };
+        Update: Partial<Database["public"]["Tables"]["platform_admins"]["Insert"]>;
+        Relationships: [];
+      };
       owners: {
-        Row: { id: string; name: string; initials: string; color: string; created_at: string };
-        Insert: { id?: string; name: string; initials: string; color: string; created_at?: string };
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          initials: string;
+          color: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          name: string;
+          initials: string;
+          color: string;
+          created_at?: string;
+        };
         Update: Partial<Database["public"]["Tables"]["owners"]["Insert"]>;
         Relationships: [];
       };
       pipeline_stages: {
         Row: {
           id: string;
+          organization_id: string;
           label: string;
           color: string;
           type: PipelineStageType;
@@ -37,6 +102,7 @@ export interface Database {
         };
         Insert: {
           id: string;
+          organization_id?: string;
           label: string;
           color: string;
           type: PipelineStageType;
@@ -49,6 +115,7 @@ export interface Database {
       prospects: {
         Row: {
           id: string;
+          organization_id: string;
           company: string;
           industry: string;
           website: string | null;
@@ -76,6 +143,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           company: string;
           industry: string;
           website?: string | null;
@@ -107,6 +175,7 @@ export interface Database {
       prospect_contacts: {
         Row: {
           id: string;
+          organization_id: string;
           prospect_id: string;
           name: string;
           role: string | null;
@@ -115,6 +184,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           prospect_id: string;
           name: string;
           role?: string | null;
@@ -125,14 +195,21 @@ export interface Database {
         Relationships: [];
       };
       prospect_phone_numbers: {
-        Row: { id: string; prospect_id: string; name: string; number: string };
-        Insert: { id?: string; prospect_id: string; name: string; number: string };
+        Row: { id: string; organization_id: string; prospect_id: string; name: string; number: string };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          prospect_id: string;
+          name: string;
+          number: string;
+        };
         Update: Partial<Database["public"]["Tables"]["prospect_phone_numbers"]["Insert"]>;
         Relationships: [];
       };
       conversation_logs: {
         Row: {
           id: string;
+          organization_id: string;
           prospect_id: string;
           log_date: string;
           contact_type: ContactType;
@@ -143,6 +220,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           prospect_id: string;
           log_date?: string;
           contact_type: ContactType;
@@ -157,6 +235,7 @@ export interface Database {
       tasks: {
         Row: {
           id: string;
+          organization_id: string;
           prospect_id: string;
           title: string;
           description: string | null;
@@ -168,6 +247,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           prospect_id: string;
           title: string;
           description?: string | null;
@@ -183,6 +263,7 @@ export interface Database {
       sponsorships: {
         Row: {
           id: string;
+          organization_id: string;
           prospect_id: string | null;
           renewed_from_id: string | null;
           company: string;
@@ -204,6 +285,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           prospect_id?: string | null;
           renewed_from_id?: string | null;
           company: string;
@@ -229,6 +311,7 @@ export interface Database {
       sponsorship_contacts: {
         Row: {
           id: string;
+          organization_id: string;
           sponsorship_id: string;
           name: string;
           role: string | null;
@@ -237,6 +320,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           sponsorship_id: string;
           name: string;
           role?: string | null;
@@ -249,6 +333,7 @@ export interface Database {
       deliverables: {
         Row: {
           id: string;
+          organization_id: string;
           sponsorship_id: string;
           title: string;
           description: string | null;
@@ -260,6 +345,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           sponsorship_id: string;
           title: string;
           description?: string | null;
@@ -275,6 +361,7 @@ export interface Database {
       activities: {
         Row: {
           id: string;
+          organization_id: string;
           sponsorship_id: string;
           type: ActivityType;
           title: string;
@@ -285,6 +372,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           sponsorship_id: string;
           type: ActivityType;
           title: string;
@@ -299,6 +387,7 @@ export interface Database {
       payments: {
         Row: {
           id: string;
+          organization_id: string;
           sponsorship_id: string;
           invoice_no: string | null;
           amount: number;
@@ -309,6 +398,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           sponsorship_id: string;
           invoice_no?: string | null;
           amount: number;
@@ -323,6 +413,7 @@ export interface Database {
       handles: {
         Row: {
           id: string;
+          organization_id: string;
           name: string;
           category: HandleCategory;
           description: string | null;
@@ -331,6 +422,7 @@ export interface Database {
         };
         Insert: {
           id: string;
+          organization_id?: string;
           name: string;
           category: HandleCategory;
           description?: string | null;
@@ -343,6 +435,7 @@ export interface Database {
       assessment_scores: {
         Row: {
           id: string;
+          organization_id: string;
           sponsorship_id: string;
           handle_id: string;
           score: number;
@@ -352,6 +445,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          organization_id?: string;
           sponsorship_id: string;
           handle_id: string;
           score: number;
@@ -364,14 +458,14 @@ export interface Database {
       };
       year_targets: {
         Row: {
-          id: number;
+          organization_id: string;
           sponsor_count: number;
           sponsor_amount: number;
           renewal_rate: number;
           updated_at: string;
         };
         Insert: {
-          id?: number;
+          organization_id?: string;
           sponsor_count?: number;
           sponsor_amount?: number;
           renewal_rate?: number;
@@ -382,7 +476,16 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      lookup_user_id_by_email: {
+        Args: { lookup_email: string };
+        Returns: string | null;
+      };
+      lookup_user_email: {
+        Args: { lookup_user_id: string };
+        Returns: string | null;
+      };
+    };
     Enums: Record<string, never>;
   };
 }

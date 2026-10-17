@@ -20,7 +20,7 @@ export default async function InstellingenPage() {
     { data: payments },
   ] = await Promise.all([
     supabase.from("owners").select("*").order("name"),
-    supabase.from("year_targets").select("*").eq("id", 1).single(),
+    supabase.from("year_targets").select("*").single(),
     supabase.from("prospects").select("id, owner_id, industry"),
     supabase.from("sponsorships").select("id, owner_id, tier, value"),
     supabase.from("payments").select("amount, status"),

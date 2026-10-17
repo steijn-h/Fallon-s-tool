@@ -33,14 +33,14 @@ export async function updateYearTargets(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("year_targets")
-    .update({
-      sponsor_count: parsed.data.sponsorCount,
-      sponsor_amount: parsed.data.sponsorAmount,
-      renewal_rate: parsed.data.renewalRate,
-    })
-    .eq("id", 1);
+  // No .eq() filter needed: RLS already scopes this to exactly the caller's
+  // own organization's single row (year_targets' primary key IS
+  // organization_id).
+  const { error } = await supabase.from("year_targets").update({
+    sponsor_count: parsed.data.sponsorCount,
+    sponsor_amount: parsed.data.sponsorAmount,
+    renewal_rate: parsed.data.renewalRate,
+  });
 
   if (error) {
     return { error: "Opslaan is mislukt." };

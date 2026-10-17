@@ -27,14 +27,11 @@ export async function resetAllData() {
   const { error: prospectsError } = await supabase.from("prospects").delete().not("id", "is", null);
   if (prospectsError) throw new Error("Resetten is mislukt (prospects).");
 
-  const { error: targetsError } = await supabase
-    .from("year_targets")
-    .update({
-      sponsor_count: DEFAULT_YEAR_TARGETS.sponsorCount,
-      sponsor_amount: DEFAULT_YEAR_TARGETS.sponsorAmount,
-      renewal_rate: DEFAULT_YEAR_TARGETS.renewalRate,
-    })
-    .eq("id", 1);
+  const { error: targetsError } = await supabase.from("year_targets").update({
+    sponsor_count: DEFAULT_YEAR_TARGETS.sponsorCount,
+    sponsor_amount: DEFAULT_YEAR_TARGETS.sponsorAmount,
+    renewal_rate: DEFAULT_YEAR_TARGETS.renewalRate,
+  });
   if (targetsError) throw new Error("Resetten is mislukt (jaartargets).");
 
   revalidatePath("/", "layout");

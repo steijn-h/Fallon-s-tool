@@ -1,9 +1,10 @@
 # SponsorHub
 
-Sponsoracquisitie- en -beheer-CRM voor een sportclub (Twente/Enschede-context).
-Eén club, alle stafleden met gelijke, volledige toegang — geen
-multi-tenant-/pakketstructuur (dat was een eerdere, vervangen versie van dit
-platform; zie "Geschiedenis van dit project" onderaan).
+Sponsoracquisitie- en -beheer-CRM. Multi-tenant: elke organisatie (club,
+evenement, citymarketingpartij) krijgt haar eigen SponsorHub-portaal, met
+een pakket (a/b/c) dat de platform-operator toekent via een los
+beheerportaal (`/beheer`). Zie "Geschiedenis van dit project" onderaan voor
+hoe dit zich verhoudt tot eerdere versies van dit platform.
 
 ## Stack
 
@@ -30,8 +31,8 @@ platform; zie "Geschiedenis van dit project" onderaan).
    cp .env.example .env.local
    # vul NEXT_PUBLIC_SUPABASE_URL en NEXT_PUBLIC_SUPABASE_ANON_KEY in
    ```
-4. **Een staf-account aanmaken.** Er wordt bewust geen testgebruiker
-   geseed. Zelfregistratie staat uit (`enable_signup = false` in
+4. **Een account aanmaken.** Er wordt bewust geen testgebruiker geseed.
+   Zelfregistratie staat uit (`enable_signup = false` in
    `supabase/config.toml`) omdat dit een besloten, intern hulpmiddel is,
    geen publieke app — dus een account aanmaken kan niet via het
    inlogscherm zelf. Twee opties:
@@ -42,11 +43,17 @@ platform; zie "Geschiedenis van dit project" onderaan).
      node --env-file=.env.local scripts/create-test-user.mjs jij@club.test EenSterkWachtwoord123
      ```
      Dit maakt direct een bevestigd account aan, zonder bevestigingsmail.
-5. **App starten**
+5. **Jezelf platform-admin maken** (eenmalig, alleen via SQL — zie
+   `docs/RLS_TEST_PLAN.md`), zodat je bij `/beheer` kunt. Maak daar een
+   organisatie aan en koppel je eigen account (of een ander account) erbij
+   — zonder organisatie-koppeling kom je verder nergens in de app.
+6. **App starten**
    ```bash
    npm run dev
    ```
-   Log in en je komt op het Dashboard.
+   Log in: een platform-admin zonder eigen organisatie komt op `/beheer`
+   terecht, een account met een organisatie op het Dashboard van die
+   organisatie.
 
 ### Zonder Docker (Supabase Cloud + Vercel)
 
@@ -72,12 +79,10 @@ volledig zonder lokale Docker draaien:
 node --env-file=.env.local scripts/verify-rls.mjs
 ```
 
-Zie `docs/RLS_TEST_PLAN.md`. Kort samengevat: dit is een single-tenant app
-(één club, alle staf gelijke rechten), dus RLS test hier niet "organisatie X
-vs Y" maar simpelweg "niet ingelogd = geen toegang, punt". Dit is lokaal
-tegen een losse Postgres-instantie bevestigd: een anonieme cliënt krijgt 0
-rijen terug op elke tabel en kan nergens in schrijven; een ingelogde
-gebruiker (ongeacht wie) kan gewoon bij alles.
+Zie `docs/RLS_TEST_PLAN.md` voor het volledige plan, inclusief hoe je
+organisatie-isolatie handmatig test (het script zelf test alleen de
+authenticatie-grens, niet "organisatie X versus Y" — dat vraagt om twee
+echte accounts in twee organisaties).
 
 ## Structuur
 
@@ -89,7 +94,9 @@ supabase/
 src/
   app/
     login/                       # inlogpagina + server actions
-    (app)/                       # ingelogde deel van de app (layout = sidebar + auth-check)
+    geen-organisatie/             # getoond aan ingelogde accounts zonder organisatie
+    beheer/                       # platform-admin-only: organisaties + licenties + leden
+    (app)/                       # organisatie-deel van de app (layout = sidebar + auth-check)
       page.tsx                    # "/" — Dashboard
       acquisitie/                 # kanban-pipeline + Excel-import
       prospects/[id]/             # prospectdetail
@@ -107,8 +114,9 @@ src/
     format.ts        # currency/compactCurrency/formatDate/computeRenewalRate/...
     import-mapping.ts # kolom-naar-veld-heuristiek voor Excel-import
     supabase/        # browser/server clients + database.types.ts
-    auth/            # sessiehelper (alleen: is iemand ingelogd)
+    auth/            # sessiehelper (ingelogd? welke organisatie/rol/pakket? platform-admin?)
     actions/         # server actions — enige plek waar mutaties gebeuren
+      platform-admin.ts # organisaties aanmaken/bewerken + leden koppelen (platform-admin-only)
 docs/
   RLS_TEST_PLAN.md
 scripts/
@@ -117,12 +125,42 @@ scripts/
 
 ## Belangrijke ontwerpkeuzes
 
-- **Eén club, geen tenant-model.** Elke ingelogde gebruiker ziet en bewerkt
-  alles. RLS-policies zijn daarom overal hetzelfde simpele patroon: `for all
-  to authenticated using (true) with check (true)` — geen
-  `organization_id`-vergelijkingen zoals in een multi-tenant opzet. Wie mag
-  inloggen wordt geregeld via Supabase Auth zelf (accounts worden handmatig
-  aangemaakt, zelfregistratie staat uit), niet via een rollen-tabel.
+- **Multi-tenant via `organization_id` op elke tabel.** Elke tenant-tabel
+  (`prospects`, `sponsorships`, `owners`, `handles`, ...) heeft een
+  `organization_id`-kolom met `default current_organization_id()` — een
+  SECURITY DEFINER-functie die de organisatie van de ingelogde gebruiker
+  opzoekt. Daardoor krijgt een gewone `insert` vanuit de app automatisch de
+  juiste organisatie, zonder dat server actions dat expliciet moeten
+  meegeven. RLS-policies zijn overal hetzelfde patroon: `using
+  (organization_id = current_organization_id() or is_platform_admin())`.
+- **`pipeline_stages.id` en `handles.id` blijven leesbare tekst-ids**
+  (`'lead'`, `'h-rendement'`, ...), maar de primary key is nu
+  `(organization_id, id)` in plaats van alleen `id` — elke organisatie
+  krijgt zo haar eigen onafhankelijke set zonder dat bestaande waarden
+  hernummerd moesten worden. `prospects.stage_id` en
+  `assessment_scores.handle_id` zijn daardoor samengestelde foreign keys.
+- **Eén platform-admin-allowlist (`platform_admins`), geen rollen-hack.**
+  De platform-operator (jijzelf) zit in een tabel zonder enige RLS-policy —
+  onbereikbaar via de normale API, alleen te wijzigen via de SQL Editor.
+  `is_platform_admin()` wordt in élke policy als `or`-voorwaarde toegevoegd,
+  dus een platform-admin ziet/bewerkt alles, in elke organisatie.
+- **Pakket (a/b/c) wordt alleen door de platform-admin toegekend.**
+  Organisaties kunnen hun eigen naam zien maar niet hun `package_type`
+  wijzigen — dat is precies de "licentie" die de platform-operator
+  uitgeeft via `/beheer`. Welke functies een pakket concreet ontgrendelt is
+  nog niet uitgewerkt (dat volgt in een latere fase); nu wordt alleen het
+  pakket zelf al vastgelegd en getoond.
+- **Een nieuwe organisatie is nooit leeg.** Een trigger op `organizations`
+  (`seed_organization_defaults`) zet bij het aanmaken automatisch de 6
+  standaard pipeline-stadia, 8 standaard handvatten en een jaartargets-rij
+  neer — zonder die stap zou een net aangemaakte organisatie een kapotte
+  Acquisitie-pagina hebben (geen kolommen in de kanban).
+- **"Owners" (dealverantwoordelijken) zijn bewust geen login-accounts.**
+  `owners` blijft een losse, vrij te bewerken naamlijst per organisatie,
+  los van `organization_members` (dat echte inlogaccounts met een rol
+  koppelt). Een "owner" is een toewijzingslabel voor rapportage, geen
+  account — dat onderscheid bestond al vóór multi-tenancy en is bewust niet
+  samengevoegd om bestaande functionaliteit niet te breken.
 - **Archetypen zijn code, geen databasetabel.** De zes persona's
   (`src/lib/archetypes.ts`) bevatten lange, vaste Nederlandse
   methodiek-teksten — redactionele inhoud, geen tenant-data die via een
@@ -180,27 +218,46 @@ scripts/
 
 Buiten deze sandbox (geen Docker, dus geen `supabase start`) is dit
 rechtstreeks tegen een losse lokale PostgreSQL 16 getest, met een minimale
-`auth.users`/`auth.uid()`-stub die het gedrag van Supabase nabootst:
+`auth.users`/`auth.uid()`-stub en dezelfde table-grants die Supabase zelf
+standaard aan `anon`/`authenticated` geeft (RLS is daar de enige
+restrictie, net als in een echt Supabase-project):
 
-1. Alle migraties (de sloop van het oude schema + alle nieuwe
-   SponsorHub-tabellen) passen achter elkaar toe zonder fouten, op een
-   database die eerder de volledige oude "Fallon's Tool"-schema had.
-2. `supabase/seed.sql` (2 prospects, 1 sponsorschap, met alle gekoppelde
-   contacten/taken/deliverables/betalingen/activiteiten/beoordelingen)
-   laadt zonder fouten.
-3. Een anonieme (niet-ingelogde) cliënt krijgt op elke tabel
-   (`prospects`, `sponsorships`, `owners`, `handles`, `pipeline_stages`)
-   0 rijen terug, en kan geen nieuwe rij aanmaken.
-4. Een ingelogde gebruiker — ongeacht welke — kan gewoon alle tabellen
-   bevragen en erin schrijven.
-5. Alle migraties draaien in omgekeerde volgorde weer schoon terug.
+1. Alle migraties — inclusief de sloop van het oorspronkelijke
+   "Fallon's Tool"-schema, de single-tenant SponsorHub-opbouw, én de
+   multi-tenant Fase-0-uitbreiding daarna — passen achter elkaar toe
+   zonder fouten.
+2. `supabase/seed.sql` laadt zonder fouten (met expliciete
+   `organization_id` op elke rij — zie de toelichting in dat bestand).
+3. **Organisatie-isolatie**: een medewerker van organisatie A krijgt 0
+   rijen terug bij het bevragen van organisatie B's data (zelfs bij een
+   expliciete `where organization_id = '<B>'`-filter), en omgekeerd. Een
+   `insert` zonder opgegeven `organization_id` komt automatisch in de
+   juiste organisatie terecht via de kolom-default.
+4. **Platform-admin-bypass**: het platform-admin-account ziet en bevraagt
+   data van beide test-organisaties probleemloos.
+5. **Zelfbediening binnen de eigen organisatie**: een organisatie-owner
+   kan zelf een nieuwe medewerker aan de eigen organisatie koppelen, maar
+   krijgt een RLS-fout bij een poging dit bij een andere organisatie te
+   doen, en kan het eigen `package_type` niet wijzigen (platform-admin-only).
+6. Een nieuw aangemaakte organisatie krijgt automatisch haar eigen 6
+   pipeline-stadia, 8 handvatten en jaartargets-rij (via de
+   `seed_organization_defaults`-trigger).
+7. Een anonieme (niet-ingelogde) cliënt krijgt overal 0 rijen terug en kan
+   nergens in schrijven.
+8. Alle migraties — ook de nieuwe Fase-0-migraties, inclusief het geval met
+   meerdere organisaties tegelijk — draaien in omgekeerde volgorde weer
+   schoon terug.
 
 ## Geschiedenis van dit project
 
 Dit platform begon als een multi-tenant "sponsor- en
 citymarketingportaal" met meerdere organisaties en drie verkooppakketten
-(a/b/c). Die aanpak is losgelaten ten gunste van SponsorHub: één
-single-tenant CRM voor één sportclub. Het oude schema is afgebroken via
-migratie `20260916000019`; de oude migraties zelf zijn in de
-git-geschiedenis blijven staan (niet herschreven) zodat de eerdere aanpak
-nog te reconstrueren is, mocht dat ooit nodig zijn.
+(a/b/c). Die aanpak is tijdelijk losgelaten ten gunste van SponsorHub: één
+single-tenant CRM voor één sportclub (het oude schema werd afgebroken via
+migratie `20260916000019`). Vervolgens is multi-tenancy weer teruggebracht
+("Fase 0", migraties vanaf `20261017000027`) — nu niet als het
+oorspronkelijke citymarketing-datamodel, maar als een organisatielaag
+*onder* SponsorHub: elke organisatie krijgt haar eigen SponsorHub-portaal,
+met een pakket dat de platform-operator toekent via een los
+beheerportaal (`/beheer`). De oude migraties van vóór de SponsorHub-pivot
+zijn in de git-geschiedenis blijven staan (niet herschreven).

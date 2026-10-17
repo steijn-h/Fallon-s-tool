@@ -28,7 +28,7 @@ export default async function DashboardPage() {
       .from("sponsorships")
       .select("id, company, value, status, start_date, end_date, created_at, renewed_from_id"),
     supabase.from("pipeline_stages").select("id, label, type, sort_order").order("sort_order"),
-    supabase.from("year_targets").select("*").eq("id", 1).single(),
+    supabase.from("year_targets").select("*").single(),
     supabase
       .from("tasks")
       .select("id, title, due_date, prospect_id")
