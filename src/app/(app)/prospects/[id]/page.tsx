@@ -55,14 +55,20 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Card>
           <CardContent>
-            <Tabs defaultValue="profiel">
-              <TabsList>
-                <TabsTrigger value="profiel">Profiel</TabsTrigger>
-                <TabsTrigger value="gesprekken">Gespreksverslagen</TabsTrigger>
-                <TabsTrigger value="taken">Taken</TabsTrigger>
+            <Tabs defaultValue="profiel" orientation="vertical" className="flex-row gap-4">
+              <TabsList className="h-fit w-44 shrink-0 flex-col items-stretch justify-start gap-1 bg-transparent p-0">
+                <TabsTrigger value="profiel" className="flex-none justify-start data-[state=active]:bg-accent">
+                  Profiel
+                </TabsTrigger>
+                <TabsTrigger value="gesprekken" className="flex-none justify-start data-[state=active]:bg-accent">
+                  Gespreksverslagen
+                </TabsTrigger>
+                <TabsTrigger value="taken" className="flex-none justify-start data-[state=active]:bg-accent">
+                  Taken
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="profiel">
+              <TabsContent value="profiel" className="min-w-0">
                 <ProspectForm
                   prospect={prospect}
                   contacts={contacts ?? []}
@@ -72,11 +78,11 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
                 />
               </TabsContent>
 
-              <TabsContent value="gesprekken">
+              <TabsContent value="gesprekken" className="min-w-0">
                 <ConversationLogsSection prospectId={prospect.id} />
               </TabsContent>
 
-              <TabsContent value="taken">
+              <TabsContent value="taken" className="min-w-0">
                 <ProspectTasksSection prospectId={prospect.id} />
               </TabsContent>
             </Tabs>

@@ -16,12 +16,12 @@ export default async function BeheerLayout({ children }: { children: ReactNode }
             Beheerportaal
           </Link>
           <p className="text-xs text-muted-foreground">
-            Organisaties en licenties — los van de SponsorHub-portalen zelf.
+            Organisaties en licenties — los van de Stracq-portalen zelf.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="/">Terug naar SponsorHub</Link>
+            <Link href="/">Terug naar Stracq</Link>
           </Button>
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">

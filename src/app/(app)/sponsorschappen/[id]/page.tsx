@@ -70,28 +70,38 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
 
       <Card>
         <CardContent>
-          <Tabs defaultValue="overzicht">
-            <TabsList>
-              <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
-              <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
-              <TabsTrigger value="betalingen">Betalingen</TabsTrigger>
-              <TabsTrigger value="activiteiten">Activiteiten</TabsTrigger>
-              <TabsTrigger value="beoordeling">Beoordeling</TabsTrigger>
+          <Tabs defaultValue="overzicht" orientation="vertical" className="flex-row gap-4">
+            <TabsList className="h-fit w-44 shrink-0 flex-col items-stretch justify-start gap-1 bg-transparent p-0">
+              <TabsTrigger value="overzicht" className="flex-none justify-start data-[state=active]:bg-accent">
+                Overzicht
+              </TabsTrigger>
+              <TabsTrigger value="deliverables" className="flex-none justify-start data-[state=active]:bg-accent">
+                Deliverables
+              </TabsTrigger>
+              <TabsTrigger value="betalingen" className="flex-none justify-start data-[state=active]:bg-accent">
+                Betalingen
+              </TabsTrigger>
+              <TabsTrigger value="activiteiten" className="flex-none justify-start data-[state=active]:bg-accent">
+                Activiteiten
+              </TabsTrigger>
+              <TabsTrigger value="beoordeling" className="flex-none justify-start data-[state=active]:bg-accent">
+                Beoordeling
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overzicht">
+            <TabsContent value="overzicht" className="min-w-0">
               <SponsorshipForm sponsorship={sponsorship} owners={owners ?? []} />
             </TabsContent>
-            <TabsContent value="deliverables">
+            <TabsContent value="deliverables" className="min-w-0">
               <DeliverablesSection sponsorshipId={sponsorship.id} />
             </TabsContent>
-            <TabsContent value="betalingen">
+            <TabsContent value="betalingen" className="min-w-0">
               <PaymentsSection sponsorshipId={sponsorship.id} />
             </TabsContent>
-            <TabsContent value="activiteiten">
+            <TabsContent value="activiteiten" className="min-w-0">
               <ActivitiesTimeline sponsorshipId={sponsorship.id} />
             </TabsContent>
-            <TabsContent value="beoordeling">
+            <TabsContent value="beoordeling" className="min-w-0">
               <AssessmentSection
                 sponsorshipId={sponsorship.id}
                 archetypeId={sponsorship.archetype_id as ArchetypeId | null}

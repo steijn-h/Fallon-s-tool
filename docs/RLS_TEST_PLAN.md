@@ -1,7 +1,7 @@
 # RLS-testplan: multi-tenant isolatie + platform-admin
 
-SponsorHub is sinds de "Fase 0"-uitbreiding weer multi-tenant: elke
-organisatie krijgt haar eigen SponsorHub-portaal, met een eigen pakket
+Stracq is sinds de "Fase 0"-uitbreiding weer multi-tenant: elke
+organisatie krijgt haar eigen Stracq-portaal, met een eigen pakket
 (a/b/c) dat door de platform-operator wordt toegekend via het
 beheerportaal (`/beheer`). RLS moet hier drie dingen garanderen:
 

@@ -28,7 +28,7 @@ export default async function BeheerPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Organisaties"
-        subtitle="Elke organisatie krijgt haar eigen SponsorHub-portaal, met functiediepte op basis van het toegekende pakket."
+        subtitle="Elke organisatie krijgt haar eigen Stracq-portaal, met functiediepte op basis van het toegekende pakket."
       />
 
       <Card>

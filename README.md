@@ -1,7 +1,7 @@
-# SponsorHub
+# Stracq
 
 Sponsoracquisitie- en -beheer-CRM. Multi-tenant: elke organisatie (club,
-evenement, citymarketingpartij) krijgt haar eigen SponsorHub-portaal, met
+evenement, citymarketingpartij) krijgt haar eigen Stracq-portaal, met
 een pakket (a/b/c) dat de platform-operator toekent via een los
 beheerportaal (`/beheer`). Zie "Geschiedenis van dit project" onderaan voor
 hoe dit zich verhoudt tot eerdere versies van dit platform.
@@ -223,7 +223,7 @@ standaard aan `anon`/`authenticated` geeft (RLS is daar de enige
 restrictie, net als in een echt Supabase-project):
 
 1. Alle migraties — inclusief de sloop van het oorspronkelijke
-   "Fallon's Tool"-schema, de single-tenant SponsorHub-opbouw, én de
+   "Fallon's Tool"-schema, de single-tenant Stracq-opbouw, én de
    multi-tenant Fase-0-uitbreiding daarna — passen achter elkaar toe
    zonder fouten.
 2. `supabase/seed.sql` laadt zonder fouten (met expliciete
@@ -252,12 +252,12 @@ restrictie, net als in een echt Supabase-project):
 
 Dit platform begon als een multi-tenant "sponsor- en
 citymarketingportaal" met meerdere organisaties en drie verkooppakketten
-(a/b/c). Die aanpak is tijdelijk losgelaten ten gunste van SponsorHub: één
+(a/b/c). Die aanpak is tijdelijk losgelaten ten gunste van Stracq: één
 single-tenant CRM voor één sportclub (het oude schema werd afgebroken via
 migratie `20260916000019`). Vervolgens is multi-tenancy weer teruggebracht
 ("Fase 0", migraties vanaf `20261017000027`) — nu niet als het
 oorspronkelijke citymarketing-datamodel, maar als een organisatielaag
-*onder* SponsorHub: elke organisatie krijgt haar eigen SponsorHub-portaal,
+*onder* Stracq: elke organisatie krijgt haar eigen Stracq-portaal,
 met een pakket dat de platform-operator toekent via een los
-beheerportaal (`/beheer`). De oude migraties van vóór de SponsorHub-pivot
+beheerportaal (`/beheer`). De oude migraties van vóór de Stracq-pivot
 zijn in de git-geschiedenis blijven staan (niet herschreven).
