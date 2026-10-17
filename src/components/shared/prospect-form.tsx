@@ -180,7 +180,7 @@ export function ProspectForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ownerId">Eigenaar</Label>
+          <Label htmlFor="ownerId">Dealverantwoordelijke</Label>
           <select
             id="ownerId"
             name="ownerId"

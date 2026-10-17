@@ -170,7 +170,7 @@ export function NewProspectDialog({ stages, owners }: { stages: StageRow[]; owne
               <Input id="probability" name="probability" type="number" min={0} max={100} defaultValue={20} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ownerId">Eigenaar</Label>
+              <Label htmlFor="ownerId">Dealverantwoordelijke</Label>
               <select
                 id="ownerId"
                 name="ownerId"

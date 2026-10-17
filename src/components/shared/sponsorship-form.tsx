@@ -95,7 +95,7 @@ export function SponsorshipForm({
           <Input id="value" name="value" type="number" min={0} defaultValue={sponsorship.value} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ownerId">Eigenaar</Label>
+          <Label htmlFor="ownerId">Dealverantwoordelijke</Label>
           <select
             id="ownerId"
             name="ownerId"

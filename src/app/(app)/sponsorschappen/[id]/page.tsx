@@ -10,6 +10,7 @@ import { PaymentsSection } from "@/components/shared/payments-section";
 import { RenewSponsorshipDialog } from "@/components/shared/renew-sponsorship-dialog";
 import { SponsorshipForm } from "@/components/shared/sponsorship-form";
 import { SponsorshipStatusSelect } from "@/components/shared/sponsorship-status-select";
+import { StatusPipeline } from "@/components/shared/status-pipeline";
 import { CompanyMark } from "@/components/shared/company-mark";
 import { TierBadge } from "@/components/shared/status-badges";
 import { findOwner, OwnerAvatar } from "@/components/shared/owner-avatar";
@@ -67,6 +68,12 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
           <DeleteSponsorshipButton sponsorshipId={sponsorship.id} />
         </div>
       </div>
+
+      <Card>
+        <CardContent>
+          <StatusPipeline status={sponsorship.status} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent>

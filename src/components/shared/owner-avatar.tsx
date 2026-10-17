@@ -26,7 +26,7 @@ export function OwnerAvatar({
   const style = { "--avatar-color": owner.color } as CSSProperties;
 
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex items-center gap-2" title={`Dealverantwoordelijke: ${owner.name}`}>
       <span
         style={style}
         className={cn(

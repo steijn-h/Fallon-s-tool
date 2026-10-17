@@ -91,7 +91,7 @@ export function SponsorshipsTable({
               <TableHead>Status</TableHead>
               <TableHead>Waarde</TableHead>
               <TableHead>Looptijd</TableHead>
-              <TableHead>Eigenaar</TableHead>
+              <TableHead>Dealverantwoordelijke</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

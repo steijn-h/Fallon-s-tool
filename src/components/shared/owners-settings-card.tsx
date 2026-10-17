@@ -40,7 +40,7 @@ export function OwnersSettingsCard({
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <SectionTitle>Eigenaren</SectionTitle>
+        <SectionTitle>Dealverantwoordelijken</SectionTitle>
 
         <div className="flex flex-col gap-2">
           {owners.map((owner) => {
@@ -104,10 +104,10 @@ export function OwnersSettingsCard({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Eigenaar verwijderen?</AlertDialogTitle>
+                        <AlertDialogTitle>Dealverantwoordelijke verwijderen?</AlertDialogTitle>
                         <AlertDialogDescription>
                           {owner.name} wordt verwijderd. Gekoppelde prospects en sponsorschappen blijven
-                          bestaan, maar raken hun eigenaar kwijt.
+                          bestaan, maar raken hun dealverantwoordelijke kwijt.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -126,7 +126,7 @@ export function OwnersSettingsCard({
 
         <div className="flex gap-2">
           <Input
-            placeholder="Naam nieuwe eigenaar"
+            placeholder="Naam nieuwe dealverantwoordelijke"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
@@ -138,7 +138,7 @@ export function OwnersSettingsCard({
                 try {
                   await addOwner(newName);
                   setNewName("");
-                  toast.success("Eigenaar toegevoegd");
+                  toast.success("Dealverantwoordelijke toegevoegd");
                 } catch {
                   toast.error("Toevoegen is mislukt.");
                 }
