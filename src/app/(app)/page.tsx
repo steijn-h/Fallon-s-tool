@@ -185,7 +185,15 @@ export default async function DashboardPage() {
 
         <Card>
           <CardContent className="flex flex-col gap-3">
-            <SectionTitle>Openstaande taken</SectionTitle>
+            <SectionTitle
+              action={
+                <Link href="/taken" className="text-xs font-medium text-primary hover:underline">
+                  Bekijk alles
+                </Link>
+              }
+            >
+              Openstaande taken
+            </SectionTitle>
             {(openTasks ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Geen openstaande taken.</p>
             ) : (
@@ -207,7 +215,15 @@ export default async function DashboardPage() {
 
         <Card>
           <CardContent className="flex flex-col gap-3">
-            <SectionTitle>Recente activiteiten</SectionTitle>
+            <SectionTitle
+              action={
+                <Link href="/activiteiten" className="text-xs font-medium text-primary hover:underline">
+                  Bekijk alles
+                </Link>
+              }
+            >
+              Recente activiteiten
+            </SectionTitle>
             {(recentActivities ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Nog geen activiteiten.</p>
             ) : (
