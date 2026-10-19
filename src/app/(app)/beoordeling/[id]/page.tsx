@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { AssessmentSection } from "@/components/shared/assessment-section";
 import { CompanyMark } from "@/components/shared/company-mark";
-import { TierBadge } from "@/components/shared/status-badges";
+import { EventPackageBadge } from "@/components/shared/status-badges";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import type { ArchetypeId } from "@/lib/types";
@@ -15,13 +15,19 @@ export default async function BeoordelingDetailPage({ params }: { params: Promis
 
   const { data: sponsorship } = await supabase
     .from("sponsorships")
-    .select("id, company, logo_color, tier, archetype_id")
+    .select("id, company, logo_color, event_package_id, archetype_id")
     .eq("id", id)
     .single();
 
   if (!sponsorship) {
     notFound();
   }
+
+  const { data: eventPackage } = await supabase
+    .from("event_packages")
+    .select("name, color")
+    .eq("id", sponsorship.event_package_id)
+    .single();
 
   return (
     <div className="flex flex-col gap-4">
@@ -36,7 +42,7 @@ export default async function BeoordelingDetailPage({ params }: { params: Promis
         <CompanyMark name={sponsorship.company} color={sponsorship.logo_color} className="size-11" />
         <div>
           <h1 className="font-display text-xl font-semibold">{sponsorship.company}</h1>
-          <TierBadge tier={sponsorship.tier} />
+          {eventPackage ? <EventPackageBadge name={eventPackage.name} color={eventPackage.color} /> : null}
         </div>
       </div>
 

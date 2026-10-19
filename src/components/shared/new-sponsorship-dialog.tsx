@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { createSponsorship, type SponsorshipInput } from "@/lib/actions/sponsorships";
+import { EventPackageSelect } from "@/components/shared/event-package-select";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,14 +17,22 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { INDUSTRIES, type SponsorshipTier } from "@/lib/types";
+import { INDUSTRIES } from "@/lib/types";
 import type { Database } from "@/lib/supabase/database.types";
 
 type OwnerRow = Database["public"]["Tables"]["owners"]["Row"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
+type EventPackageRow = Database["public"]["Tables"]["event_packages"]["Row"];
 
-const TIERS: SponsorshipTier[] = ["Platinum", "Gold", "Silver", "Bronze", "Partner"];
-
-export function NewSponsorshipDialog({ owners }: { owners: OwnerRow[] }) {
+export function NewSponsorshipDialog({
+  owners,
+  events,
+  packages,
+}: {
+  owners: OwnerRow[];
+  events: EventRow[];
+  packages: EventPackageRow[];
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const today = new Date().toISOString().slice(0, 10);
@@ -36,7 +45,7 @@ export function NewSponsorshipDialog({ owners }: { owners: OwnerRow[] }) {
       company: String(formData.get("company") ?? ""),
       industry: String(formData.get("industry") ?? ""),
       website: (formData.get("website") as string) || null,
-      tier: formData.get("tier") as SponsorshipTier,
+      eventPackageId: String(formData.get("eventPackageId") ?? ""),
       value: Number(formData.get("value") ?? 0),
       startDate: String(formData.get("startDate")),
       endDate: String(formData.get("endDate")),
@@ -68,36 +77,21 @@ export function NewSponsorshipDialog({ owners }: { owners: OwnerRow[] }) {
             <Label htmlFor="company">Bedrijfsnaam</Label>
             <Input id="company" name="company" required />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="industry">Branche</Label>
-              <select
-                id="industry"
-                name="industry"
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-              >
-                {INDUSTRIES.map((industry) => (
-                  <option key={industry} value={industry}>
-                    {industry}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="tier">Pakket</Label>
-              <select
-                id="tier"
-                name="tier"
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-              >
-                {TIERS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {tier}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="industry">Branche</Label>
+            <select
+              id="industry"
+              name="industry"
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+            >
+              {INDUSTRIES.map((industry) => (
+                <option key={industry} value={industry}>
+                  {industry}
+                </option>
+              ))}
+            </select>
           </div>
+          <EventPackageSelect events={events} packages={packages} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="website">Website</Label>
             <Input id="website" name="website" />

@@ -5,6 +5,7 @@ import { ArrowRightCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { convertProspectToSponsorship } from "@/lib/actions/prospects";
+import { EventPackageSelect } from "@/components/shared/event-package-select";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,16 +17,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { SponsorshipTier } from "@/lib/types";
+import type { Database } from "@/lib/supabase/database.types";
 
-const TIERS: SponsorshipTier[] = ["Platinum", "Gold", "Silver", "Bronze", "Partner"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
+type EventPackageRow = Database["public"]["Tables"]["event_packages"]["Row"];
 
 export function ConvertToSponsorshipDialog({
   prospectId,
   estValue,
+  events,
+  packages,
 }: {
   prospectId: string;
   estValue: number;
+  events: EventRow[];
+  packages: EventPackageRow[];
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -37,7 +43,7 @@ export function ConvertToSponsorshipDialog({
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
       const result = await convertProspectToSponsorship(prospectId, {
-        tier: formData.get("tier") as SponsorshipTier,
+        eventPackageId: String(formData.get("eventPackageId") ?? ""),
         value: Number(formData.get("value") ?? 0),
         startDate: String(formData.get("startDate")),
         endDate: String(formData.get("endDate")),
@@ -60,20 +66,7 @@ export function ConvertToSponsorshipDialog({
           <DialogTitle>Converteren naar sponsorschap</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="tier">Pakket</Label>
-            <select
-              id="tier"
-              name="tier"
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-            >
-              {TIERS.map((tier) => (
-                <option key={tier} value={tier}>
-                  {tier}
-                </option>
-              ))}
-            </select>
-          </div>
+          <EventPackageSelect events={events} packages={packages} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="value">Waarde (€)</Label>
             <Input id="value" name="value" type="number" min={0} defaultValue={estValue} />

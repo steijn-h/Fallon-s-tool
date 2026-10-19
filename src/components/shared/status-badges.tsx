@@ -2,12 +2,10 @@ import { ColorBadge } from "@/components/shared/color-badge";
 import {
   DELIVERABLE_META,
   STATUS_META,
-  TIER_COLORS,
   WARMTH_META,
   type DeliverableStatus,
   type LeadWarmth,
   type SponsorshipStatus,
-  type SponsorshipTier,
 } from "@/lib/types";
 
 export function StatusBadge({ status }: { status: SponsorshipStatus }) {
@@ -15,8 +13,10 @@ export function StatusBadge({ status }: { status: SponsorshipStatus }) {
   return <ColorBadge label={meta.label} color={meta.color} />;
 }
 
-export function TierBadge({ tier }: { tier: SponsorshipTier }) {
-  return <ColorBadge label={tier} color={TIER_COLORS[tier]} />;
+/** A sponsorship's package is data (per event, staff-editable), not a fixed
+ * enum — so its label/color come straight from the event_packages row. */
+export function EventPackageBadge({ name, color }: { name: string; color: string }) {
+  return <ColorBadge label={name} color={color} />;
 }
 
 export function DeliverableStatusBadge({ status }: { status: DeliverableStatus }) {

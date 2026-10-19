@@ -6,12 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 export default async function SponsorshipsPage() {
   const supabase = await createClient();
 
-  const [{ data: sponsorships }, { data: owners }] = await Promise.all([
+  const [{ data: sponsorships }, { data: owners }, { data: events }, { data: packages }] = await Promise.all([
     supabase
       .from("sponsorships")
-      .select("id, company, industry, logo_color, tier, status, value, start_date, end_date, owner_id")
+      .select("id, company, industry, logo_color, event_package_id, status, value, start_date, end_date, owner_id")
       .order("created_at", { ascending: false }),
     supabase.from("owners").select("*").order("name"),
+    supabase.from("events").select("*").order("name"),
+    supabase.from("event_packages").select("*").order("sort_order"),
   ]);
 
   return (
@@ -19,9 +21,16 @@ export default async function SponsorshipsPage() {
       <PageHeader
         title="Sponsorschappen"
         subtitle="Alle actieve en afgeronde sponsorrelaties."
-        actions={<NewSponsorshipDialog owners={owners ?? []} />}
+        actions={
+          <NewSponsorshipDialog owners={owners ?? []} events={events ?? []} packages={packages ?? []} />
+        }
       />
-      <SponsorshipsTable sponsorships={sponsorships ?? []} owners={owners ?? []} />
+      <SponsorshipsTable
+        sponsorships={sponsorships ?? []}
+        owners={owners ?? []}
+        events={events ?? []}
+        packages={packages ?? []}
+      />
     </div>
   );
 }

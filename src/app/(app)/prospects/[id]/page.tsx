@@ -24,12 +24,16 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
     { data: phoneNumbers },
     { data: stages },
     { data: owners },
+    { data: events },
+    { data: packages },
   ] = await Promise.all([
     supabase.from("prospects").select("*").eq("id", id).single(),
     supabase.from("prospect_contacts").select("*").eq("prospect_id", id),
     supabase.from("prospect_phone_numbers").select("*").eq("prospect_id", id),
     supabase.from("pipeline_stages").select("*").order("sort_order"),
     supabase.from("owners").select("*").order("name"),
+    supabase.from("events").select("*").order("name"),
+    supabase.from("event_packages").select("*").order("sort_order"),
   ]);
 
   if (!prospect) {
@@ -47,7 +51,12 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-xl font-semibold">{prospect.company}</h1>
         <div className="flex items-center gap-2">
-          <ConvertToSponsorshipDialog prospectId={prospect.id} estValue={prospect.est_value} />
+          <ConvertToSponsorshipDialog
+            prospectId={prospect.id}
+            estValue={prospect.est_value}
+            events={events ?? []}
+            packages={packages ?? []}
+          />
           <DeleteProspectButton prospectId={prospect.id} />
         </div>
       </div>

@@ -18,7 +18,6 @@ import type {
   PaymentStatus,
   PipelineStageType,
   SponsorshipStatus,
-  SponsorshipTier,
   TaskPriority,
 } from "@/lib/types";
 
@@ -260,6 +259,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
         Relationships: [];
       };
+      events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
+        Relationships: [];
+      };
+      event_packages: {
+        Row: {
+          id: string;
+          organization_id: string;
+          event_id: string;
+          name: string;
+          color: string;
+          value: number;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          event_id: string;
+          name: string;
+          color?: string;
+          value?: number;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["event_packages"]["Insert"]>;
+        Relationships: [];
+      };
       sponsorships: {
         Row: {
           id: string;
@@ -270,7 +311,7 @@ export interface Database {
           industry: string;
           website: string | null;
           logo_color: string;
-          tier: SponsorshipTier;
+          event_package_id: string;
           status: SponsorshipStatus;
           value: number;
           start_date: string;
@@ -292,7 +333,7 @@ export interface Database {
           industry: string;
           website?: string | null;
           logo_color?: string;
-          tier: SponsorshipTier;
+          event_package_id: string;
           status?: SponsorshipStatus;
           value?: number;
           start_date: string;

@@ -4,35 +4,42 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateSponsorship, type SponsorshipInput } from "@/lib/actions/sponsorships";
+import { EventPackageSelect } from "@/components/shared/event-package-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ARCHETYPES } from "@/lib/archetypes";
-import { INDUSTRIES, RETURN_LABELS, type ArchetypeId, type ReturnType, type SponsorshipTier } from "@/lib/types";
+import { INDUSTRIES, RETURN_LABELS, type ArchetypeId, type ReturnType } from "@/lib/types";
 import type { Database } from "@/lib/supabase/database.types";
 
 type SponsorshipRow = Database["public"]["Tables"]["sponsorships"]["Row"];
 type OwnerRow = Database["public"]["Tables"]["owners"]["Row"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
+type EventPackageRow = Database["public"]["Tables"]["event_packages"]["Row"];
 
-const TIERS: SponsorshipTier[] = ["Platinum", "Gold", "Silver", "Bronze", "Partner"];
 const RETURN_TYPES: ReturnType[] = ["ROI", "ROO", "ROE", "ROA", "ROCI", "ROKI", "ROK"];
 
 export function SponsorshipForm({
   sponsorship,
   owners,
+  events,
+  packages,
 }: {
   sponsorship: SponsorshipRow;
   owners: OwnerRow[];
+  events: EventRow[];
+  packages: EventPackageRow[];
 }) {
   const [pending, startTransition] = useTransition();
+  const currentPackage = packages.find((p) => p.id === sponsorship.event_package_id);
 
   function handleSubmit(formData: FormData) {
     const payload: SponsorshipInput = {
       company: String(formData.get("company") ?? ""),
       industry: String(formData.get("industry") ?? ""),
       website: (formData.get("website") as string) || null,
-      tier: formData.get("tier") as SponsorshipTier,
+      eventPackageId: String(formData.get("eventPackageId") ?? ""),
       value: Number(formData.get("value") ?? 0),
       startDate: String(formData.get("startDate")),
       endDate: String(formData.get("endDate")),
@@ -74,21 +81,6 @@ export function SponsorshipForm({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="website">Website</Label>
           <Input id="website" name="website" defaultValue={sponsorship.website ?? ""} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="tier">Pakket</Label>
-          <select
-            id="tier"
-            name="tier"
-            defaultValue={sponsorship.tier}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-          >
-            {TIERS.map((tier) => (
-              <option key={tier} value={tier}>
-                {tier}
-              </option>
-            ))}
-          </select>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="value">Waarde (€)</Label>
@@ -151,6 +143,12 @@ export function SponsorshipForm({
           </select>
         </div>
       </div>
+      <EventPackageSelect
+        events={events}
+        packages={packages}
+        defaultEventId={currentPackage?.event_id}
+        defaultPackageId={sponsorship.event_package_id}
+      />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="notes">Notities</Label>
         <Textarea id="notes" name="notes" rows={3} defaultValue={sponsorship.notes ?? ""} />

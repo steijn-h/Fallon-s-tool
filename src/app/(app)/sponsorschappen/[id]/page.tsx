@@ -12,7 +12,7 @@ import { SponsorshipForm } from "@/components/shared/sponsorship-form";
 import { SponsorshipStatusSelect } from "@/components/shared/sponsorship-status-select";
 import { StatusPipeline } from "@/components/shared/status-pipeline";
 import { CompanyMark } from "@/components/shared/company-mark";
-import { TierBadge } from "@/components/shared/status-badges";
+import { EventPackageBadge } from "@/components/shared/status-badges";
 import { findOwner, OwnerAvatar } from "@/components/shared/owner-avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,9 +24,11 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: sponsorship }, { data: owners }] = await Promise.all([
+  const [{ data: sponsorship }, { data: owners }, { data: events }, { data: packages }] = await Promise.all([
     supabase.from("sponsorships").select("*").eq("id", id).single(),
     supabase.from("owners").select("*").order("name"),
+    supabase.from("events").select("*").order("name"),
+    supabase.from("event_packages").select("*").order("sort_order"),
   ]);
 
   if (!sponsorship) {
@@ -34,6 +36,8 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
   }
   const owner = findOwner(owners ?? [], sponsorship.owner_id);
   const years = durationYears(sponsorship.start_date, sponsorship.end_date);
+  const currentPackage = (packages ?? []).find((p) => p.id === sponsorship.event_package_id);
+  const currentEvent = (events ?? []).find((e) => e.id === currentPackage?.event_id);
 
   return (
     <div className="flex flex-col gap-4">
@@ -50,9 +54,11 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
           <div>
             <h1 className="font-display text-xl font-semibold">{sponsorship.company}</h1>
             <div className="mt-1 flex items-center gap-2">
-              <TierBadge tier={sponsorship.tier} />
+              {currentPackage ? (
+                <EventPackageBadge name={currentPackage.name} color={currentPackage.color} />
+              ) : null}
               <span className="text-sm text-muted-foreground">
-                {currency(sponsorship.value)} · {years.toFixed(1)} jaar looptijd
+                {currentEvent?.name} · {currency(sponsorship.value)} · {years.toFixed(1)} jaar looptijd
               </span>
             </div>
           </div>
@@ -97,7 +103,12 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
             </TabsList>
 
             <TabsContent value="overzicht" className="min-w-0">
-              <SponsorshipForm sponsorship={sponsorship} owners={owners ?? []} />
+              <SponsorshipForm
+                sponsorship={sponsorship}
+                owners={owners ?? []}
+                events={events ?? []}
+                packages={packages ?? []}
+              />
             </TabsContent>
             <TabsContent value="deliverables" className="min-w-0">
               <DeliverablesSection sponsorshipId={sponsorship.id} />

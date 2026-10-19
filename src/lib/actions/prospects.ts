@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import type { ArchetypeId, LeadWarmth, OrganizationSize, SponsorshipTier } from "@/lib/types";
+import type { ArchetypeId, LeadWarmth, OrganizationSize } from "@/lib/types";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1),
@@ -187,7 +187,7 @@ export async function deleteProspect(id: string) {
 
 export async function convertProspectToSponsorship(
   prospectId: string,
-  input: { tier: SponsorshipTier; value: number; startDate: string; endDate: string },
+  input: { eventPackageId: string; value: number; startDate: string; endDate: string },
 ) {
   await requireSession();
   const supabase = await createClient();
@@ -210,7 +210,7 @@ export async function convertProspectToSponsorship(
       industry: prospect.industry,
       website: prospect.website,
       logo_color: "0 72% 51%",
-      tier: input.tier,
+      event_package_id: input.eventPackageId,
       value: input.value,
       start_date: input.startDate,
       end_date: input.endDate,

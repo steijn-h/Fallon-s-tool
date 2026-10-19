@@ -14,34 +14,49 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CompanyMark } from "@/components/shared/company-mark";
 import { findOwner, OwnerAvatar } from "@/components/shared/owner-avatar";
-import { StatusBadge, TierBadge } from "@/components/shared/status-badges";
+import { EventPackageBadge, StatusBadge } from "@/components/shared/status-badges";
 import { compactCurrency, formatDate } from "@/lib/format";
-import { STATUS_META, type SponsorshipStatus, type SponsorshipTier } from "@/lib/types";
+import { STATUS_META, type SponsorshipStatus } from "@/lib/types";
 import type { Database } from "@/lib/supabase/database.types";
 
 type SponsorshipRow = Pick<
   Database["public"]["Tables"]["sponsorships"]["Row"],
-  "id" | "company" | "industry" | "logo_color" | "tier" | "status" | "value" | "start_date" | "end_date" | "owner_id"
+  | "id"
+  | "company"
+  | "industry"
+  | "logo_color"
+  | "event_package_id"
+  | "status"
+  | "value"
+  | "start_date"
+  | "end_date"
+  | "owner_id"
 >;
 type OwnerRow = Database["public"]["Tables"]["owners"]["Row"];
-
-const TIERS: SponsorshipTier[] = ["Platinum", "Gold", "Silver", "Bronze", "Partner"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
+type EventPackageRow = Database["public"]["Tables"]["event_packages"]["Row"];
 
 export function SponsorshipsTable({
   sponsorships,
   owners,
+  events,
+  packages,
 }: {
   sponsorships: SponsorshipRow[];
   owners: OwnerRow[];
+  events: EventRow[];
+  packages: EventPackageRow[];
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SponsorshipStatus | "all">("all");
-  const [tierFilter, setTierFilter] = useState<SponsorshipTier | "all">("all");
+  const [eventFilter, setEventFilter] = useState<string | "all">("all");
+
+  const packageById = new Map(packages.map((p) => [p.id, p]));
 
   const filtered = sponsorships.filter((s) => {
     if (search && !s.company.toLowerCase().includes(search.toLowerCase())) return false;
     if (statusFilter !== "all" && s.status !== statusFilter) return false;
-    if (tierFilter !== "all" && s.tier !== tierFilter) return false;
+    if (eventFilter !== "all" && packageById.get(s.event_package_id)?.event_id !== eventFilter) return false;
     return true;
   });
 
@@ -67,15 +82,15 @@ export function SponsorshipsTable({
             ))}
           </SelectContent>
         </Select>
-        <Select value={tierFilter} onValueChange={(v) => setTierFilter(v as SponsorshipTier | "all")}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Pakket" />
+        <Select value={eventFilter} onValueChange={(v) => setEventFilter(v)}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Evenement" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle pakketten</SelectItem>
-            {TIERS.map((tier) => (
-              <SelectItem key={tier} value={tier}>
-                {tier}
+            <SelectItem value="all">Alle evenementen</SelectItem>
+            {events.map((event) => (
+              <SelectItem key={event.id} value={event.id}>
+                {event.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -102,29 +117,30 @@ export function SponsorshipsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>
-                    <Link href={`/sponsorschappen/${s.id}`} className="flex items-center gap-2 font-medium hover:underline">
-                      <CompanyMark name={s.company} color={s.logo_color} className="size-7 text-xs" />
-                      {s.company}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <TierBadge tier={s.tier} />
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={s.status} />
-                  </TableCell>
-                  <TableCell>{compactCurrency(s.value)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(s.start_date)} – {formatDate(s.end_date)}
-                  </TableCell>
-                  <TableCell>
-                    <OwnerAvatar owner={findOwner(owners, s.owner_id)} size="sm" showName />
-                  </TableCell>
-                </TableRow>
-              ))
+              filtered.map((s) => {
+                const pkg = packageById.get(s.event_package_id);
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell>
+                      <Link href={`/sponsorschappen/${s.id}`} className="flex items-center gap-2 font-medium hover:underline">
+                        <CompanyMark name={s.company} color={s.logo_color} className="size-7 text-xs" />
+                        {s.company}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{pkg ? <EventPackageBadge name={pkg.name} color={pkg.color} /> : null}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={s.status} />
+                    </TableCell>
+                    <TableCell>{compactCurrency(s.value)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(s.start_date)} – {formatDate(s.end_date)}
+                    </TableCell>
+                    <TableCell>
+                      <OwnerAvatar owner={findOwner(owners, s.owner_id)} size="sm" showName />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

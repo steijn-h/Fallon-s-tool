@@ -16,26 +16,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CompanyMark } from "@/components/shared/company-mark";
-import { StatusBadge, TierBadge } from "@/components/shared/status-badges";
+import { EventPackageBadge, StatusBadge } from "@/components/shared/status-badges";
 import { ORGANIZATION_SIZES, type ArchetypeId, type OrganizationSize } from "@/lib/types";
 import type { Database } from "@/lib/supabase/database.types";
 
 type SponsorshipRow = Pick<
   Database["public"]["Tables"]["sponsorships"]["Row"],
-  "id" | "company" | "logo_color" | "tier" | "status" | "archetype_id" | "prospect_id"
+  "id" | "company" | "logo_color" | "event_package_id" | "status" | "archetype_id" | "prospect_id"
 >;
 type ProspectRow = Pick<
   Database["public"]["Tables"]["prospects"]["Row"],
   "id" | "company" | "company_type" | "organization_size"
 >;
+type EventPackageRow = Pick<Database["public"]["Tables"]["event_packages"]["Row"], "id" | "name" | "color">;
 
 export function BeoordelingList({
   sponsorships,
   prospects,
+  packages,
 }: {
   sponsorships: SponsorshipRow[];
   prospects: ProspectRow[];
+  packages: EventPackageRow[];
 }) {
+  const packageById = useMemo(() => new Map(packages.map((p) => [p.id, p])), [packages]);
   const [search, setSearch] = useState("");
   const [archetypeFilter, setArchetypeFilter] = useState<ArchetypeId | "all">("all");
   const [sizeFilter, setSizeFilter] = useState<OrganizationSize | "all">("all");
@@ -136,22 +140,25 @@ export function BeoordelingList({
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground">Geen sponsorschappen gevonden.</p>
         ) : (
-          filtered.map((s) => (
-            <Link key={s.id} href={`/beoordeling/${s.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
-                <CardContent className="flex items-center gap-3">
-                  <CompanyMark name={s.company} color={s.logo_color} />
-                  <div>
-                    <p className="text-sm font-medium">{s.company}</p>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <TierBadge tier={s.tier} />
-                      <StatusBadge status={s.status} />
+          filtered.map((s) => {
+            const pkg = packageById.get(s.event_package_id);
+            return (
+              <Link key={s.id} href={`/beoordeling/${s.id}`}>
+                <Card className="h-full transition-shadow hover:shadow-md">
+                  <CardContent className="flex items-center gap-3">
+                    <CompanyMark name={s.company} color={s.logo_color} />
+                    <div>
+                      <p className="text-sm font-medium">{s.company}</p>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        {pkg ? <EventPackageBadge name={pkg.name} color={pkg.color} /> : null}
+                        <StatusBadge status={s.status} />
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })
         )}
       </div>
     </div>

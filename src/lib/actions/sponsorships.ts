@@ -12,7 +12,7 @@ const sponsorshipSchema = z.object({
   company: z.string().trim().min(1, "Bedrijfsnaam is verplicht"),
   industry: z.string().trim().min(1, "Branche is verplicht"),
   website: z.string().trim().nullable().default(null),
-  tier: z.enum(["Platinum", "Gold", "Silver", "Bronze", "Partner"]),
+  eventPackageId: z.string().trim().min(1, "Pakket is verplicht"),
   value: z.coerce.number().min(0),
   startDate: z.string().trim().min(1),
   endDate: z.string().trim().min(1),
@@ -49,7 +49,7 @@ export async function createSponsorship(input: SponsorshipInput) {
       industry: parsed.data.industry,
       website: parsed.data.website,
       logo_color: "0 72% 51%",
-      tier: parsed.data.tier,
+      event_package_id: parsed.data.eventPackageId,
       value: parsed.data.value,
       start_date: parsed.data.startDate,
       end_date: parsed.data.endDate,
@@ -89,7 +89,7 @@ export async function updateSponsorship(id: string, input: SponsorshipInput) {
       company: parsed.data.company,
       industry: parsed.data.industry,
       website: parsed.data.website,
-      tier: parsed.data.tier,
+      event_package_id: parsed.data.eventPackageId,
       value: parsed.data.value,
       start_date: parsed.data.startDate,
       end_date: parsed.data.endDate,
@@ -145,7 +145,7 @@ export async function renewSponsorship(
 
   const { data: original, error: originalError } = await supabase
     .from("sponsorships")
-    .select("prospect_id, company, industry, website, logo_color, tier, owner_id, archetype_id, return_focus")
+    .select("prospect_id, company, industry, website, logo_color, event_package_id, owner_id, archetype_id, return_focus")
     .eq("id", id)
     .single();
 
@@ -162,7 +162,7 @@ export async function renewSponsorship(
       industry: original.industry,
       website: original.website,
       logo_color: original.logo_color,
-      tier: original.tier,
+      event_package_id: original.event_package_id,
       status: "contracted",
       value: input.value,
       start_date: input.startDate,

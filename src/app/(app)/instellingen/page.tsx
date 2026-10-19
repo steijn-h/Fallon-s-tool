@@ -1,12 +1,12 @@
 import type { CSSProperties } from "react";
 
 import { DataResetCard } from "@/components/shared/data-reset-card";
+import { EventsSettingsCard } from "@/components/shared/events-settings-card";
 import { OwnersSettingsCard } from "@/components/shared/owners-settings-card";
 import { PageHeader, SectionTitle } from "@/components/shared/page-header";
 import { YearTargetsForm } from "@/components/shared/year-targets-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { compactCurrency } from "@/lib/format";
-import { TIER_COLORS, type SponsorshipTier } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstellingenPage() {
@@ -18,12 +18,16 @@ export default async function InstellingenPage() {
     { data: prospects },
     { data: sponsorships },
     { data: payments },
+    { data: events },
+    { data: packages },
   ] = await Promise.all([
     supabase.from("owners").select("*").order("name"),
     supabase.from("year_targets").select("*").single(),
     supabase.from("prospects").select("id, owner_id, industry"),
-    supabase.from("sponsorships").select("id, owner_id, tier, value"),
+    supabase.from("sponsorships").select("id, owner_id, event_package_id, value"),
     supabase.from("payments").select("amount, status"),
+    supabase.from("events").select("*").order("name"),
+    supabase.from("event_packages").select("*").order("sort_order"),
   ]);
 
   const counts: Record<string, { prospects: number; sponsorships: number }> = {};
@@ -40,10 +44,9 @@ export default async function InstellingenPage() {
     branchCounts.set(p.industry, (branchCounts.get(p.industry) ?? 0) + 1);
   }
 
-  const tiers: SponsorshipTier[] = ["Platinum", "Gold", "Silver", "Bronze", "Partner"];
-  const tierStats = tiers.map((tier) => {
-    const items = (sponsorships ?? []).filter((s) => s.tier === tier);
-    return { tier, count: items.length, value: items.reduce((sum, s) => sum + s.value, 0) };
+  const packageStats = (packages ?? []).map((pkg) => {
+    const items = (sponsorships ?? []).filter((s) => s.event_package_id === pkg.id);
+    return { pkg, count: items.length, value: items.reduce((sum, s) => sum + s.value, 0) };
   });
 
   const totalContractValue = (sponsorships ?? []).reduce((sum, s) => sum + s.value, 0);
@@ -80,22 +83,29 @@ export default async function InstellingenPage() {
 
       <Card>
         <CardContent className="flex flex-col gap-3">
-          <SectionTitle>Sponsorship-pakketten</SectionTitle>
+          <SectionTitle>Sponsorpakketten in gebruik</SectionTitle>
           <div className="grid gap-2 sm:grid-cols-5">
-            {tierStats.map((t) => (
-              <div
-                key={t.tier}
-                style={{ "--tier-color": TIER_COLORS[t.tier] } as CSSProperties}
-                className="rounded-md border p-2.5 border-[hsl(var(--tier-color)/0.3)] bg-[hsl(var(--tier-color)/0.08)]"
-              >
-                <p className="text-xs font-medium text-[hsl(var(--tier-color))]">{t.tier}</p>
-                <p className="text-sm font-semibold">{t.count}</p>
-                <p className="text-xs text-muted-foreground">{compactCurrency(t.value)}</p>
-              </div>
-            ))}
+            {packageStats
+              .filter((t) => t.count > 0)
+              .map((t) => (
+                <div
+                  key={t.pkg.id}
+                  style={{ "--pkg-color": t.pkg.color } as CSSProperties}
+                  className="rounded-md border p-2.5 border-[hsl(var(--pkg-color)/0.3)] bg-[hsl(var(--pkg-color)/0.08)]"
+                >
+                  <p className="text-xs font-medium text-[hsl(var(--pkg-color))]">{t.pkg.name}</p>
+                  <p className="text-sm font-semibold">{t.count}</p>
+                  <p className="text-xs text-muted-foreground">{compactCurrency(t.value)}</p>
+                </div>
+              ))}
+            {packageStats.every((t) => t.count === 0) ? (
+              <p className="text-sm text-muted-foreground">Nog geen sponsorschappen.</p>
+            ) : null}
           </div>
         </CardContent>
       </Card>
+
+      <EventsSettingsCard events={events ?? []} packages={packages ?? []} />
 
       <DataResetCard
         prospectCount={(prospects ?? []).length}

@@ -70,12 +70,19 @@ insert into public.tasks (organization_id, prospect_id, title, description, due_
   );
 
 insert into public.sponsorships (
-  id, organization_id, prospect_id, company, industry, website, tier, status, value,
+  id, organization_id, prospect_id, company, industry, website, event_package_id, status, value,
   start_date, end_date, notes, archetype_id, return_focus
 ) values (
   '20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', null,
   'Kennispark Groep', 'Tech',
-  'https://kennisparkgroep.example', 'Gold', 'active', 15000,
+  'https://kennisparkgroep.example',
+  (
+    select ep.id from public.event_packages ep
+    join public.events e on e.id = ep.event_id
+    where e.organization_id = '00000000-0000-0000-0000-000000000001'
+      and e.name = 'Integraal pakket' and ep.name = 'Gold'
+  ),
+  'active', 15000,
   current_date - 90, current_date + 275,
   'Actieve sponsor, vooral geïnteresseerd in zichtbaarheid richting UT-studenten voor werving.',
   'talentenjager', 'ROA'

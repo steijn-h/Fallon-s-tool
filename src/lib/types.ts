@@ -2,7 +2,6 @@ export type ContactType = "telefoon" | "email" | "persoonlijk" | "teams" | "ande
 export type TaskPriority = "laag" | "normaal" | "hoog";
 export type LeadWarmth = "koud" | "lauw" | "warm" | "heet";
 export type OrganizationSize = "1-10" | "11-50" | "50-250" | "250-1000" | "1000+";
-export type SponsorshipTier = "Platinum" | "Gold" | "Silver" | "Bronze" | "Partner";
 export type SponsorshipStatus = "concept" | "contracted" | "active" | "completed" | "at-risk" | "cancelled";
 export type DeliverableStatus = "not-started" | "in-progress" | "delivered" | "overdue";
 export type ActivityType = "call" | "email" | "meeting" | "note" | "contract" | "payment" | "assessment";
@@ -59,6 +58,20 @@ export interface Owner {
   name: string;
   initials: string;
   color: string;
+}
+
+export interface Event {
+  id: string;
+  name: string;
+}
+
+export interface EventPackage {
+  id: string;
+  eventId: string;
+  name: string;
+  color: string;
+  value: number;
+  sortOrder: number;
 }
 
 export interface Contact {
@@ -175,7 +188,7 @@ export interface Sponsorship {
   industry: string;
   website: string | null;
   logoColor: string;
-  tier: SponsorshipTier;
+  eventPackageId: string;
   status: SponsorshipStatus;
   value: number;
   startDate: string;
@@ -208,14 +221,6 @@ export const DEFAULT_YEAR_TARGETS: YearTargets = {
   sponsorCount: 25,
   sponsorAmount: 500000,
   renewalRate: 70,
-};
-
-export const TIER_COLORS: Record<SponsorshipTier, string> = {
-  Platinum: "271 50% 72%",
-  Gold: "25 95% 53%",
-  Silver: "271 14% 60%",
-  Bronze: "15 70% 48%",
-  Partner: "271 40% 55%",
 };
 
 export const STATUS_META: Record<SponsorshipStatus, { label: string; color: string }> = {
