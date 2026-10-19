@@ -8,6 +8,8 @@ export type ActivityType = "call" | "email" | "meeting" | "note" | "contract" | 
 export type PaymentStatus = "scheduled" | "due" | "paid" | "overdue";
 export type PipelineStageType = "open" | "won" | "lost";
 export type HandleCategory = "archetype" | "individual" | "both";
+export type FinancialEntryType = "income" | "expense";
+export type FinancialEntryCategory = "direct" | "indirect" | "goodwill";
 export type ArchetypeId =
   | "calculerende-rationalist"
   | "lokale-held"
@@ -254,4 +256,10 @@ export const RETURN_LABELS: Record<ReturnType, string> = {
   ROCI: "Return on Community Investment",
   ROKI: "Return on Key Intangibles",
   ROK: "Return on Karma",
+};
+
+export const FINANCIAL_CATEGORY_LABELS: Record<FinancialEntryCategory, string> = {
+  direct: "Direct",
+  indirect: "Indirect",
+  goodwill: "Goodwill",
 };

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Award,
+  Banknote,
   LayoutDashboard,
   ListChecks,
   SlidersHorizontal,
@@ -20,6 +21,7 @@ export const NAV_ITEMS = [
   { href: "/archetypes", label: "Archetypen", icon: Sparkles },
   { href: "/beoordeling", label: "Beoordeling", icon: ListChecks },
   { href: "/handvatten", label: "Handvatten", icon: SlidersHorizontal },
+  { href: "/financieel", label: "Financieel", icon: Banknote },
 ] as const;
 
 function isItemActive(pathname: string, href: string) {

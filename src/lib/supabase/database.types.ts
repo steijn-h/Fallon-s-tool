@@ -12,6 +12,8 @@ import type {
   ActivityType,
   ContactType,
   DeliverableStatus,
+  FinancialEntryCategory,
+  FinancialEntryType,
   HandleCategory,
   LeadWarmth,
   OrganizationSize,
@@ -449,6 +451,34 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
+        Relationships: [];
+      };
+      financial_entries: {
+        Row: {
+          id: string;
+          organization_id: string;
+          event_id: string;
+          deliverable_id: string | null;
+          type: FinancialEntryType;
+          category: FinancialEntryCategory;
+          description: string;
+          amount: number;
+          entry_date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          event_id: string;
+          deliverable_id?: string | null;
+          type: FinancialEntryType;
+          category: FinancialEntryCategory;
+          description: string;
+          amount: number;
+          entry_date?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["financial_entries"]["Insert"]>;
         Relationships: [];
       };
       handles: {
