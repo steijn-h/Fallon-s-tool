@@ -453,6 +453,50 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
         Relationships: [];
       };
+      archetype_assessments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          prospect_id: string | null;
+          sponsorship_id: string | null;
+          archetype_id: string;
+          matches: boolean;
+          explanation: string | null;
+          author_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          prospect_id?: string | null;
+          sponsorship_id?: string | null;
+          archetype_id: string;
+          matches: boolean;
+          explanation?: string | null;
+          author_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["archetype_assessments"]["Insert"]>;
+        Relationships: [];
+      };
+      archetype_settings: {
+        Row: {
+          organization_id: string;
+          archetype_id: string;
+          image_url: string | null;
+          notes: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id?: string;
+          archetype_id: string;
+          image_url?: string | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["archetype_settings"]["Insert"]>;
+        Relationships: [];
+      };
       financial_entries: {
         Row: {
           id: string;

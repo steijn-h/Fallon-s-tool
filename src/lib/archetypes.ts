@@ -371,3 +371,41 @@ export function archetypeScoreForMotivation(
   const motivationValue = archetype.motivation[dimension];
   return Math.round(score * (0.5 + 0.5 * (motivationValue / 100)));
 }
+
+/** The weighted total a given archetype would produce for one set of handle
+ * scores — the same calculation assessment-section.tsx shows per sponsor,
+ * generalized so every archetype's fit can be compared against the same
+ * actual scores. */
+export function weightedTotalForArchetype(
+  archetype: Archetype | undefined,
+  handles: { id: string; weight: number }[],
+  scoreByHandleId: Map<string, number>,
+): number | null {
+  let weightedSum = 0;
+  let weightTotal = 0;
+  for (const handle of handles) {
+    const existing = scoreByHandleId.get(handle.id);
+    if (existing === undefined) continue;
+    const value = archetype ? archetypeScoreForMotivation(archetype, handle.id, existing) : existing;
+    weightedSum += value * handle.weight;
+    weightTotal += handle.weight;
+  }
+  return weightTotal > 0 ? Math.round((weightedSum / weightTotal) * 10) / 10 : null;
+}
+
+/**
+ * Ranks every archetype by how well it fits a sponsor's ACTUAL handvatten
+ * scores (highest weighted total first) — a data-driven suggestion for
+ * "which archetype does this sponsor's behaviour actually match", rather
+ * than a guess from sparse profile fields. Needs at least one scored
+ * handle to produce a meaningful ranking.
+ */
+export function suggestArchetypes(
+  handles: { id: string; weight: number }[],
+  scoreByHandleId: Map<string, number>,
+): { archetype: Archetype; total: number }[] {
+  return ARCHETYPES.map((archetype) => ({
+    archetype,
+    total: weightedTotalForArchetype(archetype, handles, scoreByHandleId) ?? 0,
+  })).sort((a, b) => b.total - a.total);
+}

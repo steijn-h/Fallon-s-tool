@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+import { ArchetypeAssessmentSection } from "@/components/shared/archetype-assessment-section";
 import { ArchetypeMethodologyPanel } from "@/components/shared/archetype-methodology-panel";
 import { ConversationLogsSection } from "@/components/shared/conversation-logs-section";
 import { ConvertToSponsorshipDialog } from "@/components/shared/convert-to-sponsorship-dialog";
 import { DeleteProspectButton } from "@/components/shared/delete-prospect-button";
 import { ProspectForm } from "@/components/shared/prospect-form";
 import { ProspectTasksSection } from "@/components/shared/prospect-tasks-section";
+import { SectionTitle } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { archetypeById } from "@/lib/archetypes";
@@ -26,6 +28,7 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
     { data: owners },
     { data: events },
     { data: packages },
+    { data: archetypeAssessments },
   ] = await Promise.all([
     supabase.from("prospects").select("*").eq("id", id).single(),
     supabase.from("prospect_contacts").select("*").eq("prospect_id", id),
@@ -34,6 +37,11 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
     supabase.from("owners").select("*").order("name"),
     supabase.from("events").select("*").order("name"),
     supabase.from("event_packages").select("*").order("sort_order"),
+    supabase
+      .from("archetype_assessments")
+      .select("id, matches, explanation, created_at")
+      .eq("prospect_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!prospect) {
@@ -100,7 +108,19 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
 
         <div className="flex flex-col gap-4">
           {archetype ? (
-            <ArchetypeMethodologyPanel archetype={archetype} />
+            <>
+              <ArchetypeMethodologyPanel archetype={archetype} />
+              <Card>
+                <CardContent className="flex flex-col gap-3">
+                  <SectionTitle>Klopt dit archetype?</SectionTitle>
+                  <ArchetypeAssessmentSection
+                    prospectId={prospect.id}
+                    archetypeId={prospect.archetype_id as ArchetypeId | null}
+                    assessments={archetypeAssessments ?? []}
+                  />
+                </CardContent>
+              </Card>
+            </>
           ) : (
             <Card>
               <CardContent className="text-sm text-muted-foreground">

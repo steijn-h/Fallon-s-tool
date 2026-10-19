@@ -1,7 +1,10 @@
+import { ArchetypeAssessmentSection } from "@/components/shared/archetype-assessment-section";
+import { ArchetypeSuggestionCard } from "@/components/shared/archetype-suggestion-card";
 import { AssessmentBenchmarkChart } from "@/components/shared/assessment-benchmark-chart";
 import { AssessmentHandleRow } from "@/components/shared/assessment-handle-row";
 import { Card, CardContent } from "@/components/ui/card";
-import { archetypeById, archetypeScoreForMotivation, type Motivation } from "@/lib/archetypes";
+import { SectionTitle } from "@/components/shared/page-header";
+import { archetypeById, suggestArchetypes, weightedTotalForArchetype, type Motivation } from "@/lib/archetypes";
 import { createClient } from "@/lib/supabase/server";
 import type { ArchetypeId } from "@/lib/types";
 
@@ -19,26 +22,26 @@ export async function AssessmentSection({
   archetypeId: ArchetypeId | null;
 }) {
   const supabase = await createClient();
-  const [{ data: handles }, { data: scores }] = await Promise.all([
+  const [{ data: handles }, { data: scores }, { data: assessments }] = await Promise.all([
     supabase.from("handles").select("*").order("category"),
     supabase.from("assessment_scores").select("*").eq("sponsorship_id", sponsorshipId),
+    supabase
+      .from("archetype_assessments")
+      .select("id, matches, explanation, created_at")
+      .eq("sponsorship_id", sponsorshipId)
+      .order("created_at", { ascending: false }),
   ]);
 
+  const scoreByHandleId = new Map((scores ?? []).map((s) => [s.handle_id, s.score]));
   const scoreByHandle = new Map((scores ?? []).map((s) => [s.handle_id, s]));
   const archetype = archetypeById(archetypeId);
+  const total = weightedTotalForArchetype(archetype, handles ?? [], scoreByHandleId);
 
-  let weightedSum = 0;
-  let weightTotal = 0;
-  for (const handle of handles ?? []) {
-    const existing = scoreByHandle.get(handle.id);
-    if (!existing) continue;
-    const value = archetype
-      ? archetypeScoreForMotivation(archetype, handle.id, existing.score)
-      : existing.score;
-    weightedSum += value * handle.weight;
-    weightTotal += handle.weight;
-  }
-  const total = weightTotal > 0 ? Math.round((weightedSum / weightTotal) * 10) / 10 : null;
+  const suggestions = suggestArchetypes(handles ?? [], scoreByHandleId);
+  const topSuggestion =
+    suggestions.length > 0 && suggestions[0].total > 0
+      ? { archetypeId: suggestions[0].archetype.id, name: suggestions[0].archetype.name, total: suggestions[0].total }
+      : null;
 
   const chartData = (handles ?? [])
     .filter((h) => scoreByHandle.has(h.id))
@@ -71,6 +74,12 @@ export async function AssessmentSection({
         </CardContent>
       </Card>
 
+      <ArchetypeSuggestionCard
+        sponsorshipId={sponsorshipId}
+        currentArchetypeId={archetypeId}
+        topSuggestion={topSuggestion}
+      />
+
       {chartData.length > 0 ? (
         <Card>
           <CardContent>
@@ -92,6 +101,17 @@ export async function AssessmentSection({
           />
         ))}
       </div>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3">
+          <SectionTitle>Klopt dit archetype?</SectionTitle>
+          <ArchetypeAssessmentSection
+            sponsorshipId={sponsorshipId}
+            archetypeId={archetypeId}
+            assessments={assessments ?? []}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
