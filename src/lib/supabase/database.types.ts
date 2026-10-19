@@ -477,6 +477,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      is_platform_admin: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
       lookup_user_id_by_email: {
         Args: { lookup_email: string };
         Returns: string | null;

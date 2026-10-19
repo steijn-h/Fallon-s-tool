@@ -32,13 +32,17 @@ export const getCurrentSession = cache(async function getCurrentSession(): Promi
     return null;
   }
 
-  const [{ data: membership }, { data: platformAdmin }] = await Promise.all([
+  // platform_admins has zero RLS policies (default-deny for every API
+  // role) — querying it directly always returns nothing, by design. The
+  // SECURITY DEFINER is_platform_admin() RPC is the only correct way to
+  // check this from application code.
+  const [{ data: membership }, { data: isPlatformAdmin }] = await Promise.all([
     supabase
       .from("organization_members")
       .select("role, organizations(id, name, package_type)")
       .eq("user_id", user.id)
       .maybeSingle(),
-    supabase.from("platform_admins").select("user_id").eq("user_id", user.id).maybeSingle(),
+    supabase.rpc("is_platform_admin"),
   ]);
 
   // Embedded selects don't type-check reliably against hand-written
@@ -56,7 +60,7 @@ export const getCurrentSession = cache(async function getCurrentSession(): Promi
     organizationName: org?.name ?? null,
     role: membership?.role ?? null,
     packageType: org?.package_type ?? null,
-    isPlatformAdmin: !!platformAdmin,
+    isPlatformAdmin: !!isPlatformAdmin,
   };
 });
 
