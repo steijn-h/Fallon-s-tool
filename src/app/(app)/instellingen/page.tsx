@@ -1,9 +1,13 @@
+import Link from "next/link";
+import { SlidersHorizontal } from "lucide-react";
+
 import { DataResetCard } from "@/components/shared/data-reset-card";
 import { EventsSettingsCard } from "@/components/shared/events-settings-card";
 import { OwnersSettingsCard } from "@/components/shared/owners-settings-card";
-import { PageHeader } from "@/components/shared/page-header";
+import { PageHeader, SectionTitle } from "@/components/shared/page-header";
 import { PermissionsSettingsCard, type MemberRow } from "@/components/shared/permissions-settings-card";
 import { YearTargetsForm } from "@/components/shared/year-targets-form";
+import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstellingenPage() {
@@ -19,6 +23,7 @@ export default async function InstellingenPage() {
     { data: packages },
     { data: members },
     { data: memberEmails },
+    { count: handleCount },
   ] = await Promise.all([
     supabase.from("owners").select("*").order("name"),
     supabase.from("year_targets").select("*").single(),
@@ -29,6 +34,7 @@ export default async function InstellingenPage() {
     supabase.from("event_packages").select("*").order("sort_order"),
     supabase.from("organization_members").select("id, user_id, role, access_level"),
     supabase.rpc("list_own_organization_member_emails"),
+    supabase.from("handles").select("id", { count: "exact", head: true }),
   ]);
 
   const counts: Record<string, { prospects: number; sponsorships: number }> = {};
@@ -63,6 +69,25 @@ export default async function InstellingenPage() {
       <OwnersSettingsCard owners={owners ?? []} counts={counts} memberEmails={memberEmails ?? []} />
 
       <PermissionsSettingsCard members={memberRows} />
+
+      <Link href="/handvatten" className="block">
+        <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40">
+          <CardContent className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-md bg-secondary p-2 text-primary">
+                <SlidersHorizontal className="size-5" />
+              </div>
+              <div>
+                <SectionTitle>Beoordelingscriteria</SectionTitle>
+                <p className="text-sm text-muted-foreground">
+                  Handvatten en wegingen aanpassen waarop de automatische beoordelingsscore wordt berekend.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 text-xs text-muted-foreground">{handleCount ?? 0} handvatten →</span>
+          </CardContent>
+        </Card>
+      </Link>
 
       {targets ? <YearTargetsForm targets={targets} /> : null}
 
