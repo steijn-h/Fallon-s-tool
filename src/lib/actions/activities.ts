@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireSession } from "@/lib/auth/session";
+import { recalculateAssessmentScores } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 
 const activitySchema = z.object({
@@ -44,6 +45,10 @@ export async function addActivity(
 
   if (error) {
     return { error: "Activiteit toevoegen is mislukt." };
+  }
+
+  if (parsed.data.type !== "assessment") {
+    await recalculateAssessmentScores(supabase, sponsorshipId);
   }
 
   revalidatePath(`/sponsorschappen/${sponsorshipId}`);

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireSession } from "@/lib/auth/session";
+import { recalculateAssessmentScores } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 import { STATUS_META, type ArchetypeId, type ReturnType, type SponsorshipStatus } from "@/lib/types";
 
@@ -70,6 +71,8 @@ export async function createSponsorship(input: SponsorshipInput) {
     type: "note",
     title: "Sponsorschap aangemaakt",
   });
+
+  await recalculateAssessmentScores(supabase, data.id);
 
   revalidatePath("/sponsorschappen");
   redirect(`/sponsorschappen/${data.id}`);

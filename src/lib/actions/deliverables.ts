@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireSession } from "@/lib/auth/session";
+import { recalculateAssessmentScores } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 import type { DeliverableStatus } from "@/lib/types";
 
@@ -49,6 +50,8 @@ export async function addDeliverable(
     return { error: "Deliverable toevoegen is mislukt." };
   }
 
+  await recalculateAssessmentScores(supabase, sponsorshipId);
+
   revalidatePath(`/sponsorschappen/${sponsorshipId}`);
   return { error: null };
 }
@@ -66,5 +69,8 @@ export async function updateDeliverableStatus(
     .eq("id", deliverableId);
 
   if (error) throw new Error("Bijwerken is mislukt.");
+
+  await recalculateAssessmentScores(supabase, sponsorshipId);
+
   revalidatePath(`/sponsorschappen/${sponsorshipId}`);
 }

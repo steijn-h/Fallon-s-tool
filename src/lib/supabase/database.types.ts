@@ -26,6 +26,7 @@ import type {
 export type PackageType = "a" | "b" | "c";
 export type OrganizationRole = "owner" | "admin" | "member";
 export type AccessLevel = "full" | "assigned" | "readonly";
+export type DisputeStatus = "pending" | "approved" | "rejected";
 
 export interface Database {
   public: {
@@ -560,6 +561,7 @@ export interface Database {
           handle_id: string;
           score: number;
           note: string | null;
+          explanation: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -570,10 +572,45 @@ export interface Database {
           handle_id: string;
           score: number;
           note?: string | null;
+          explanation?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["assessment_scores"]["Insert"]>;
+        Relationships: [];
+      };
+      score_disputes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          sponsorship_id: string;
+          handle_id: string;
+          current_score: number;
+          requested_score: number;
+          reason: string;
+          status: DisputeStatus;
+          requested_by: string | null;
+          reviewed_by: string | null;
+          review_feedback: string | null;
+          created_at: string;
+          reviewed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          sponsorship_id: string;
+          handle_id: string;
+          current_score: number;
+          requested_score: number;
+          reason: string;
+          status?: DisputeStatus;
+          requested_by?: string | null;
+          reviewed_by?: string | null;
+          review_feedback?: string | null;
+          created_at?: string;
+          reviewed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["score_disputes"]["Insert"]>;
         Relationships: [];
       };
       year_targets: {

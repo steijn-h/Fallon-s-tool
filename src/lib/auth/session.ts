@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
-import type { OrganizationRole, PackageType } from "@/lib/supabase/database.types";
+import type { AccessLevel, OrganizationRole, PackageType } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 export interface CurrentSession {
@@ -13,6 +13,7 @@ export interface CurrentSession {
   organizationName: string | null;
   role: OrganizationRole | null;
   packageType: PackageType | null;
+  accessLevel: AccessLevel | null;
   isPlatformAdmin: boolean;
 }
 
@@ -39,7 +40,7 @@ export const getCurrentSession = cache(async function getCurrentSession(): Promi
   const [{ data: membership }, { data: isPlatformAdmin }] = await Promise.all([
     supabase
       .from("organization_members")
-      .select("role, organizations(id, name, package_type)")
+      .select("role, access_level, organizations(id, name, package_type)")
       .eq("user_id", user.id)
       .maybeSingle(),
     supabase.rpc("is_platform_admin"),
@@ -60,6 +61,7 @@ export const getCurrentSession = cache(async function getCurrentSession(): Promi
     organizationName: org?.name ?? null,
     role: membership?.role ?? null,
     packageType: org?.package_type ?? null,
+    accessLevel: membership?.access_level ?? null,
     isPlatformAdmin: !!isPlatformAdmin,
   };
 });

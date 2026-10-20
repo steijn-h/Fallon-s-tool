@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireSession } from "@/lib/auth/session";
+import { recalculateAssessmentScores } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 
 const paymentSchema = z.object({
@@ -64,6 +65,8 @@ export async function markPaymentPaid(sponsorshipId: string, paymentId: string) 
     type: "payment",
     title: "Betaling ontvangen",
   });
+
+  await recalculateAssessmentScores(supabase, sponsorshipId);
 
   revalidatePath(`/sponsorschappen/${sponsorshipId}`);
 }
