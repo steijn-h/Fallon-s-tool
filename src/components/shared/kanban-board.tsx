@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy, X } from "lucide-react";
+import { Search, Trophy, X } from "lucide-react";
 
 import { ARCHETYPES } from "@/lib/archetypes";
 import { moveProspectStage } from "@/lib/actions/prospects";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -86,15 +87,34 @@ export function KanbanBoard({
     });
   }
 
+  const activeFilterCount = [
+    sizeFilter !== "all",
+    typeFilter !== "all",
+    archetypeFilter !== "all",
+    industryFilter !== "all",
+  ].filter(Boolean).length;
+
+  function resetFilters() {
+    setSearch("");
+    setSizeFilter("all");
+    setTypeFilter("all");
+    setArchetypeFilter("all");
+    setIndustryFilter("all");
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          placeholder="Zoek op bedrijfsnaam..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-56"
-        />
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-56">
+            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Zoek op bedrijfsnaam..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         <Select value={sizeFilter} onValueChange={(v) => setSizeFilter(v as OrganizationSize | "all")}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Bedrijfsgrootte" />
@@ -147,6 +167,17 @@ export function KanbanBoard({
             ))}
           </SelectContent>
         </Select>
+        </div>
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>
+            {filtered.length} van {items.length} prospects
+          </span>
+          {activeFilterCount > 0 || search ? (
+            <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={resetFilters}>
+              <X className="size-3.5" /> Filters wissen ({activeFilterCount + (search ? 1 : 0)})
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-2">
