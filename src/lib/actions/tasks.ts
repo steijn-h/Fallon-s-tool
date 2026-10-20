@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import type { TaskPriority } from "@/lib/types";
 
 const taskSchema = z.object({
   title: z.string().trim().min(1, "Titel is verplicht"),
@@ -50,6 +51,35 @@ export async function addTask(
 
   revalidatePath(`/prospects/${prospectId}`);
   return { error: null };
+}
+
+export async function updateTask(
+  prospectId: string,
+  taskId: string,
+  input: { title: string; description: string | null; dueDate: string | null; priority: TaskPriority },
+) {
+  await requireSession();
+
+  const parsed = taskSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Ongeldige invoer.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("tasks")
+    .update({
+      title: parsed.data.title,
+      description: parsed.data.description,
+      due_date: parsed.data.dueDate,
+      priority: parsed.data.priority,
+    })
+    .eq("id", taskId);
+
+  if (error) throw new Error("Bijwerken is mislukt.");
+  revalidatePath(`/prospects/${prospectId}`);
+  revalidatePath("/taken");
+  revalidatePath("/");
 }
 
 export async function toggleTask(prospectId: string, taskId: string, completed: boolean) {
