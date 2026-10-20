@@ -25,6 +25,7 @@ import type {
 
 export type PackageType = "a" | "b" | "c";
 export type OrganizationRole = "owner" | "admin" | "member";
+export type AccessLevel = "full" | "assigned" | "readonly";
 
 export interface Database {
   public: {
@@ -53,6 +54,7 @@ export interface Database {
           organization_id: string;
           user_id: string;
           role: OrganizationRole;
+          access_level: AccessLevel;
           created_at: string;
         };
         Insert: {
@@ -60,6 +62,7 @@ export interface Database {
           organization_id: string;
           user_id: string;
           role: OrganizationRole;
+          access_level?: AccessLevel;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["organization_members"]["Insert"]>;
@@ -78,6 +81,7 @@ export interface Database {
           name: string;
           initials: string;
           color: string;
+          user_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -86,6 +90,7 @@ export interface Database {
           name: string;
           initials: string;
           color: string;
+          user_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["owners"]["Insert"]>;
@@ -603,6 +608,10 @@ export interface Database {
       lookup_user_email: {
         Args: { lookup_user_id: string };
         Returns: string | null;
+      };
+      list_own_organization_member_emails: {
+        Args: Record<PropertyKey, never>;
+        Returns: { user_id: string; email: string }[];
       };
     };
     Enums: Record<string, never>;

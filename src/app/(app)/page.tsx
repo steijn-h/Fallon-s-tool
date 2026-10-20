@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { Award, Banknote, TrendingUp, Users } from "lucide-react";
 
 import { PageHeader, SectionTitle } from "@/components/shared/page-header";
@@ -22,11 +23,12 @@ export default async function DashboardPage() {
     { data: openTasks },
     { data: recentActivities },
     { data: paidPayments },
+    { data: eventPackages },
   ] = await Promise.all([
-    supabase.from("prospects").select("id, company, est_value, probability, stage_id"),
+    supabase.from("prospects").select("id, company, est_value, probability, stage_id, industry"),
     supabase
       .from("sponsorships")
-      .select("id, company, value, status, start_date, end_date, created_at, renewed_from_id"),
+      .select("id, company, value, status, start_date, end_date, created_at, renewed_from_id, event_package_id"),
     supabase.from("pipeline_stages").select("id, label, type, sort_order").order("sort_order"),
     supabase.from("year_targets").select("*").single(),
     supabase
@@ -41,6 +43,7 @@ export default async function DashboardPage() {
       .order("occurred_at", { ascending: false })
       .limit(6),
     supabase.from("payments").select("amount").eq("status", "paid"),
+    supabase.from("event_packages").select("id, name, color"),
   ]);
 
   const taskProspectIds = [...new Set((openTasks ?? []).map((t) => t.prospect_id))];
@@ -99,14 +102,28 @@ export default async function DashboardPage() {
     }));
 
   const activeContracts = sponsorships.filter((s) => s.status === "active");
-  const durationBuckets = { y1: 0, y3: 0, y5: 0 };
+  const durationBuckets = { eenmalig: 0, y3: 0, y5: 0 };
   for (const s of activeContracts) {
     const years = durationYears(s.startDate, s.endDate);
-    if (years >= 4.5) durationBuckets.y5 += 1;
-    else if (years >= 2.5) durationBuckets.y3 += 1;
-    else durationBuckets.y1 += 1;
+    if (years >= 4) durationBuckets.y5 += 1;
+    else if (years >= 1.5) durationBuckets.y3 += 1;
+    else durationBuckets.eenmalig += 1;
   }
   const totalDurationContracts = activeContracts.length || 1;
+
+  const branchCounts = new Map<string, number>();
+  for (const p of prospects ?? []) {
+    branchCounts.set(p.industry, (branchCounts.get(p.industry) ?? 0) + 1);
+  }
+
+  const packageById = new Map((eventPackages ?? []).map((p) => [p.id, p]));
+  const packageStats = new Map<string, { count: number; value: number }>();
+  for (const s of sponsorshipRows ?? []) {
+    const pkg = packageById.get(s.event_package_id);
+    if (!pkg) continue;
+    const current = packageStats.get(pkg.id) ?? { count: 0, value: 0 };
+    packageStats.set(pkg.id, { count: current.count + 1, value: current.value + s.value });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -166,9 +183,9 @@ export default async function DashboardPage() {
           <CardContent className="flex flex-col gap-3">
             <SectionTitle>Looptijd actieve contracten</SectionTitle>
             {[
-              { key: "y1", label: "Tot 2,5 jaar" },
-              { key: "y3", label: "2,5 - 4,5 jaar" },
-              { key: "y5", label: "5+ jaar" },
+              { key: "eenmalig", label: "Eenmalig" },
+              { key: "y3", label: "3 jaar" },
+              { key: "y5", label: "5 jaar" },
             ].map((bucket) => {
               const count = durationBuckets[bucket.key as keyof typeof durationBuckets];
               return (
@@ -240,6 +257,52 @@ export default async function DashboardPage() {
                 </Link>
               ))
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardContent className="flex flex-col gap-3">
+            <SectionTitle>Branches</SectionTitle>
+            <div className="flex flex-wrap gap-2">
+              {[...branchCounts.entries()].map(([branch, count]) => (
+                <span
+                  key={branch}
+                  className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
+                >
+                  {branch} · {count}
+                </span>
+              ))}
+              {branchCounts.size === 0 ? (
+                <p className="text-sm text-muted-foreground">Nog geen prospects met een branche.</p>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex flex-col gap-3">
+            <SectionTitle>Sponsorpakketten in gebruik</SectionTitle>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[...packageStats.entries()].map(([pkgId, stat]) => {
+                const pkg = packageById.get(pkgId)!;
+                return (
+                  <div
+                    key={pkgId}
+                    style={{ "--pkg-color": pkg.color } as CSSProperties}
+                    className="rounded-md border p-2.5 border-[hsl(var(--pkg-color)/0.3)] bg-[hsl(var(--pkg-color)/0.08)]"
+                  >
+                    <p className="text-xs font-medium text-[hsl(var(--pkg-color))]">{pkg.name}</p>
+                    <p className="text-sm font-semibold">{stat.count}</p>
+                    <p className="text-xs text-muted-foreground">{compactCurrency(stat.value)}</p>
+                  </div>
+                );
+              })}
+              {packageStats.size === 0 ? (
+                <p className="text-sm text-muted-foreground">Nog geen sponsorschappen.</p>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       </div>

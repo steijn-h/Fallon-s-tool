@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { addOwner, deleteOwner, renameOwner } from "@/lib/actions/owners";
+import { addOwner, deleteOwner, linkOwnerToAccount, renameOwner } from "@/lib/actions/owners";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,9 +28,11 @@ type OwnerRow = Database["public"]["Tables"]["owners"]["Row"];
 export function OwnersSettingsCard({
   owners,
   counts,
+  memberEmails,
 }: {
   owners: OwnerRow[];
   counts: Record<string, { prospects: number; sponsorships: number }>;
+  memberEmails: { user_id: string; email: string }[];
 }) {
   const [pending, startTransition] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,13 +56,35 @@ export function OwnersSettingsCard({
                   {isEditing ? (
                     <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 flex-1" />
                   ) : (
-                    <div>
+                    <div className="flex-1">
                       <p className="text-sm font-medium">{owner.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {c.prospects} prospects · {c.sponsorships} sponsorschappen
                       </p>
                     </div>
                   )}
+                  <select
+                    value={owner.user_id ?? ""}
+                    disabled={pending}
+                    onChange={(e) =>
+                      startTransition(async () => {
+                        try {
+                          await linkOwnerToAccount(owner.id, e.target.value || null);
+                          toast.success(e.target.value ? "Gekoppeld aan account" : "Koppeling verwijderd");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Koppelen is mislukt.");
+                        }
+                      })
+                    }
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs shadow-sm"
+                  >
+                    <option value="">Geen account gekoppeld</option>
+                    {memberEmails.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.email}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex items-center gap-1">
                   {isEditing ? (

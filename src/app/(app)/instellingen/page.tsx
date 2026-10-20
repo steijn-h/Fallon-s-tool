@@ -1,12 +1,9 @@
-import type { CSSProperties } from "react";
-
 import { DataResetCard } from "@/components/shared/data-reset-card";
 import { EventsSettingsCard } from "@/components/shared/events-settings-card";
 import { OwnersSettingsCard } from "@/components/shared/owners-settings-card";
-import { PageHeader, SectionTitle } from "@/components/shared/page-header";
+import { PageHeader } from "@/components/shared/page-header";
+import { PermissionsSettingsCard, type MemberRow } from "@/components/shared/permissions-settings-card";
 import { YearTargetsForm } from "@/components/shared/year-targets-form";
-import { Card, CardContent } from "@/components/ui/card";
-import { compactCurrency } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstellingenPage() {
@@ -20,14 +17,18 @@ export default async function InstellingenPage() {
     { data: payments },
     { data: events },
     { data: packages },
+    { data: members },
+    { data: memberEmails },
   ] = await Promise.all([
     supabase.from("owners").select("*").order("name"),
     supabase.from("year_targets").select("*").single(),
-    supabase.from("prospects").select("id, owner_id, industry"),
-    supabase.from("sponsorships").select("id, owner_id, event_package_id, value"),
+    supabase.from("prospects").select("id, owner_id"),
+    supabase.from("sponsorships").select("id, owner_id, value"),
     supabase.from("payments").select("amount, status"),
     supabase.from("events").select("*").order("name"),
     supabase.from("event_packages").select("*").order("sort_order"),
+    supabase.from("organization_members").select("id, user_id, role, access_level"),
+    supabase.rpc("list_own_organization_member_emails"),
   ]);
 
   const counts: Record<string, { prospects: number; sponsorships: number }> = {};
@@ -39,71 +40,31 @@ export default async function InstellingenPage() {
     if (s.owner_id && counts[s.owner_id]) counts[s.owner_id]!.sponsorships += 1;
   }
 
-  const branchCounts = new Map<string, number>();
-  for (const p of prospects ?? []) {
-    branchCounts.set(p.industry, (branchCounts.get(p.industry) ?? 0) + 1);
-  }
-
-  const packageStats = (packages ?? []).map((pkg) => {
-    const items = (sponsorships ?? []).filter((s) => s.event_package_id === pkg.id);
-    return { pkg, count: items.length, value: items.reduce((sum, s) => sum + s.value, 0) };
-  });
-
   const totalContractValue = (sponsorships ?? []).reduce((sum, s) => sum + s.value, 0);
   const totalCollected = (payments ?? [])
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + p.amount, 0);
 
+  const emailByUserId = new Map((memberEmails ?? []).map((m) => [m.user_id, m.email]));
+  const memberRows: MemberRow[] = (members ?? []).map((m) => ({
+    id: m.id,
+    email: emailByUserId.get(m.user_id) ?? m.user_id,
+    role: m.role,
+    access_level: m.access_level,
+  }));
+
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Instellingen" subtitle="Beheer eigenaren, targets en stamgegevens." />
+      <PageHeader
+        title="Instellingen"
+        subtitle="Beheer eigenaren, rechten, evenementen en stamgegevens."
+      />
 
-      <OwnersSettingsCard owners={owners ?? []} counts={counts} />
+      <OwnersSettingsCard owners={owners ?? []} counts={counts} memberEmails={memberEmails ?? []} />
+
+      <PermissionsSettingsCard members={memberRows} />
 
       {targets ? <YearTargetsForm targets={targets} /> : null}
-
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          <SectionTitle>Branches</SectionTitle>
-          <div className="flex flex-wrap gap-2">
-            {[...branchCounts.entries()].map(([branch, count]) => (
-              <span
-                key={branch}
-                className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
-              >
-                {branch} · {count}
-              </span>
-            ))}
-            {branchCounts.size === 0 ? (
-              <p className="text-sm text-muted-foreground">Nog geen prospects met een branche.</p>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          <SectionTitle>Sponsorpakketten in gebruik</SectionTitle>
-          <div className="grid gap-2 sm:grid-cols-5">
-            {packageStats
-              .filter((t) => t.count > 0)
-              .map((t) => (
-                <div
-                  key={t.pkg.id}
-                  style={{ "--pkg-color": t.pkg.color } as CSSProperties}
-                  className="rounded-md border p-2.5 border-[hsl(var(--pkg-color)/0.3)] bg-[hsl(var(--pkg-color)/0.08)]"
-                >
-                  <p className="text-xs font-medium text-[hsl(var(--pkg-color))]">{t.pkg.name}</p>
-                  <p className="text-sm font-semibold">{t.count}</p>
-                  <p className="text-xs text-muted-foreground">{compactCurrency(t.value)}</p>
-                </div>
-              ))}
-            {packageStats.every((t) => t.count === 0) ? (
-              <p className="text-sm text-muted-foreground">Nog geen sponsorschappen.</p>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
 
       <EventsSettingsCard events={events ?? []} packages={packages ?? []} />
 

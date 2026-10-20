@@ -45,3 +45,16 @@ export async function deleteOwner(id: string) {
   if (error) throw new Error("Eigenaar verwijderen is mislukt.");
   revalidatePath("/instellingen");
 }
+
+/** Links (or unlinks, when userId is null) a dealverantwoordelijke to a
+ * real portal account — "mix van beide": most owners are just a name,
+ * some are also a real user whose access_level then determines what they
+ * may edit. */
+export async function linkOwnerToAccount(ownerId: string, userId: string | null) {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.from("owners").update({ user_id: userId }).eq("id", ownerId);
+
+  if (error) throw new Error("Koppelen is mislukt — mogelijk is dit account al aan een andere eigenaar gekoppeld.");
+  revalidatePath("/instellingen");
+}
