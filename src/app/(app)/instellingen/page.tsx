@@ -1,13 +1,11 @@
-import Link from "next/link";
-import { SlidersHorizontal } from "lucide-react";
+import { CalendarDays, SlidersHorizontal } from "lucide-react";
 
 import { DataResetCard } from "@/components/shared/data-reset-card";
-import { EventsSettingsCard } from "@/components/shared/events-settings-card";
 import { OwnersSettingsCard } from "@/components/shared/owners-settings-card";
-import { PageHeader, SectionTitle } from "@/components/shared/page-header";
+import { PageHeader } from "@/components/shared/page-header";
 import { PermissionsSettingsCard, type MemberRow } from "@/components/shared/permissions-settings-card";
+import { SettingsLinkCard } from "@/components/shared/settings-link-card";
 import { YearTargetsForm } from "@/components/shared/year-targets-form";
-import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InstellingenPage() {
@@ -19,22 +17,20 @@ export default async function InstellingenPage() {
     { data: prospects },
     { data: sponsorships },
     { data: payments },
-    { data: events },
-    { data: packages },
     { data: members },
     { data: memberEmails },
     { count: handleCount },
+    { count: eventCount },
   ] = await Promise.all([
     supabase.from("owners").select("*").order("name"),
     supabase.from("year_targets").select("*").single(),
     supabase.from("prospects").select("id, owner_id"),
     supabase.from("sponsorships").select("id, owner_id, value"),
     supabase.from("payments").select("amount, status"),
-    supabase.from("events").select("*").order("name"),
-    supabase.from("event_packages").select("*").order("sort_order"),
     supabase.from("organization_members").select("id, user_id, role, access_level"),
     supabase.rpc("list_own_organization_member_emails"),
     supabase.from("handles").select("id", { count: "exact", head: true }),
+    supabase.from("events").select("id", { count: "exact", head: true }),
   ]);
 
   const counts: Record<string, { prospects: number; sponsorships: number }> = {};
@@ -70,28 +66,23 @@ export default async function InstellingenPage() {
 
       <PermissionsSettingsCard members={memberRows} />
 
-      <Link href="/handvatten" className="block">
-        <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40">
-          <CardContent className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="rounded-md bg-secondary p-2 text-primary">
-                <SlidersHorizontal className="size-5" />
-              </div>
-              <div>
-                <SectionTitle>Beoordelingscriteria</SectionTitle>
-                <p className="text-sm text-muted-foreground">
-                  Handvatten en wegingen aanpassen waarop de automatische beoordelingsscore wordt berekend.
-                </p>
-              </div>
-            </div>
-            <span className="shrink-0 text-xs text-muted-foreground">{handleCount ?? 0} handvatten →</span>
-          </CardContent>
-        </Card>
-      </Link>
+      <SettingsLinkCard
+        href="/handvatten"
+        icon={SlidersHorizontal}
+        title="Beoordelingscriteria"
+        description="Handvatten en wegingen aanpassen waarop de automatische beoordelingsscore wordt berekend."
+        trailing={`${handleCount ?? 0} handvatten`}
+      />
+
+      <SettingsLinkCard
+        href="/evenementen"
+        icon={CalendarDays}
+        title="Evenementen & pakketten"
+        description="Evenementen, pakketprijzen per jaar, kostprijs en wederkerige prestaties beheer je nu bij Evenementen."
+        trailing={`${eventCount ?? 0} evenementen`}
+      />
 
       {targets ? <YearTargetsForm targets={targets} /> : null}
-
-      <EventsSettingsCard events={events ?? []} packages={packages ?? []} />
 
       <DataResetCard
         prospectCount={(prospects ?? []).length}

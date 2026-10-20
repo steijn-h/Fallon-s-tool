@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EventPackageDetailDialog } from "@/components/shared/event-package-detail-dialog";
 import { Input } from "@/components/ui/input";
 import { SectionTitle } from "@/components/shared/page-header";
 import { currency } from "@/lib/format";
@@ -32,8 +33,21 @@ import type { Database } from "@/lib/supabase/database.types";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type EventPackageRow = Database["public"]["Tables"]["event_packages"]["Row"];
+type PriceRow = Database["public"]["Tables"]["event_package_prices"]["Row"];
+type PerformanceRow = Database["public"]["Tables"]["reciprocal_performances"]["Row"];
+type ActionRow = Database["public"]["Tables"]["reciprocal_performance_actions"]["Row"];
 
-function EventPackageRowItem({ pkg }: { pkg: EventPackageRow }) {
+function EventPackageRowItem({
+  pkg,
+  prices,
+  performances,
+  actionsByPerformanceId,
+}: {
+  pkg: EventPackageRow;
+  prices: PriceRow[];
+  performances: PerformanceRow[];
+  actionsByPerformanceId: Map<string, ActionRow[]>;
+}) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(pkg.name);
@@ -58,6 +72,13 @@ function EventPackageRowItem({ pkg }: { pkg: EventPackageRow }) {
         </span>
       )}
       <div className="flex items-center gap-1">
+        <EventPackageDetailDialog
+          packageId={pkg.id}
+          packageName={pkg.name}
+          prices={prices}
+          performances={performances}
+          actionsByPerformanceId={actionsByPerformanceId}
+        />
         {editing ? (
           <>
             <Button
@@ -124,7 +145,19 @@ function EventPackageRowItem({ pkg }: { pkg: EventPackageRow }) {
   );
 }
 
-function EventRowItem({ event, packages }: { event: EventRow; packages: EventPackageRow[] }) {
+function EventRowItem({
+  event,
+  packages,
+  pricesByPackageId,
+  performancesByPackageId,
+  actionsByPerformanceId,
+}: {
+  event: EventRow;
+  packages: EventPackageRow[];
+  pricesByPackageId: Map<string, PriceRow[]>;
+  performancesByPackageId: Map<string, PerformanceRow[]>;
+  actionsByPerformanceId: Map<string, ActionRow[]>;
+}) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(event.name);
@@ -205,7 +238,13 @@ function EventRowItem({ event, packages }: { event: EventRow; packages: EventPac
 
       <div className="flex flex-col gap-1.5 pl-1">
         {packages.map((pkg) => (
-          <EventPackageRowItem key={pkg.id} pkg={pkg} />
+          <EventPackageRowItem
+            key={pkg.id}
+            pkg={pkg}
+            prices={pricesByPackageId.get(pkg.id) ?? []}
+            performances={performancesByPackageId.get(pkg.id) ?? []}
+            actionsByPerformanceId={actionsByPerformanceId}
+          />
         ))}
       </div>
 
@@ -239,23 +278,48 @@ function EventRowItem({ event, packages }: { event: EventRow; packages: EventPac
   );
 }
 
-export function EventsSettingsCard({
+export function EventsManager({
   events,
   packages,
+  prices,
+  performances,
+  actions,
 }: {
   events: EventRow[];
   packages: EventPackageRow[];
+  prices: PriceRow[];
+  performances: PerformanceRow[];
+  actions: ActionRow[];
 }) {
   const [pending, startTransition] = useTransition();
   const [newEventName, setNewEventName] = useState("");
+
+  const pricesByPackageId = new Map<string, PriceRow[]>();
+  for (const p of prices) {
+    const list = pricesByPackageId.get(p.event_package_id) ?? [];
+    list.push(p);
+    pricesByPackageId.set(p.event_package_id, list);
+  }
+  const performancesByPackageId = new Map<string, PerformanceRow[]>();
+  for (const p of performances) {
+    const list = performancesByPackageId.get(p.event_package_id) ?? [];
+    list.push(p);
+    performancesByPackageId.set(p.event_package_id, list);
+  }
+  const actionsByPerformanceId = new Map<string, ActionRow[]>();
+  for (const a of actions) {
+    const list = actionsByPerformanceId.get(a.reciprocal_performance_id) ?? [];
+    list.push(a);
+    actionsByPerformanceId.set(a.reciprocal_performance_id, list);
+  }
 
   return (
     <Card>
       <CardContent className="flex flex-col gap-3">
         <SectionTitle>Evenementen & pakketten</SectionTitle>
         <p className="text-sm text-muted-foreground">
-          Elk evenement heeft zijn eigen set sponsorpakketten. Een sponsorschap wordt altijd aan één
-          pakket van één evenement gekoppeld.
+          Elk evenement heeft zijn eigen set sponsorpakketten. Klik op het schuifjes-icoon bij een pakket
+          voor de prijsgeschiedenis (per jaar, met kostprijs) en de wederkerige prestaties die erbij horen.
         </p>
 
         <div className="flex flex-col gap-2">
@@ -264,6 +328,9 @@ export function EventsSettingsCard({
               key={event.id}
               event={event}
               packages={packages.filter((p) => p.event_id === event.id)}
+              pricesByPackageId={pricesByPackageId}
+              performancesByPackageId={performancesByPackageId}
+              actionsByPerformanceId={actionsByPerformanceId}
             />
           ))}
         </div>

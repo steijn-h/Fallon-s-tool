@@ -309,6 +309,72 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["event_packages"]["Insert"]>;
         Relationships: [];
       };
+      event_package_prices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          event_package_id: string;
+          year: number;
+          value: number;
+          cost_price: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          event_package_id: string;
+          year: number;
+          value?: number;
+          cost_price?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["event_package_prices"]["Insert"]>;
+        Relationships: [];
+      };
+      reciprocal_performances: {
+        Row: {
+          id: string;
+          organization_id: string;
+          event_package_id: string;
+          title: string;
+          description: string | null;
+          perceived_value: number | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          event_package_id: string;
+          title: string;
+          description?: string | null;
+          perceived_value?: number | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reciprocal_performances"]["Insert"]>;
+        Relationships: [];
+      };
+      reciprocal_performance_actions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          reciprocal_performance_id: string;
+          title: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          reciprocal_performance_id: string;
+          title: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reciprocal_performance_actions"]["Insert"]>;
+        Relationships: [];
+      };
       sponsorships: {
         Row: {
           id: string;

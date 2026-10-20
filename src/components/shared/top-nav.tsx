@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Award,
   Banknote,
+  CalendarDays,
   LayoutDashboard,
   ListChecks,
   SlidersHorizontal,
@@ -18,6 +19,7 @@ export const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/acquisitie", label: "Acquisitie", icon: Target },
   { href: "/sponsorschappen", label: "Sponsorschappen", icon: Award },
+  { href: "/evenementen", label: "Evenementen", icon: CalendarDays },
   { href: "/archetypes", label: "Archetypen", icon: Sparkles },
   { href: "/beoordeling", label: "Beoordeling", icon: ListChecks },
   { href: "/handvatten", label: "Handvatten", icon: SlidersHorizontal },

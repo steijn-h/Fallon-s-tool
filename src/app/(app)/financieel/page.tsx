@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Banknote, FileClock, TrendingDown, TrendingUp } from "lucide-react";
 
 import { FinancialEntriesTable } from "@/components/shared/financial-entries-table";
@@ -9,7 +10,12 @@ import { compactCurrency, currency } from "@/lib/format";
 import { FINANCIAL_CATEGORY_LABELS } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function FinancieelPage() {
+export default async function FinancieelPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ eventId?: string }>;
+}) {
+  const { eventId } = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -74,7 +80,8 @@ export default async function FinancieelPage() {
     return { event, sponsorRevenue, income, expense, net: sponsorRevenue + income - expense, byCategory };
   });
 
-  const tableRows = (entries ?? []).map((e) => ({
+  const filteredEntries = eventId ? (entries ?? []).filter((e) => e.event_id === eventId) : (entries ?? []);
+  const tableRows = filteredEntries.map((e) => ({
     id: e.id,
     eventName: eventById.get(e.event_id)?.name ?? "Onbekend evenement",
     deliverableLabel: e.deliverable_id ? deliverableLabelById.get(e.deliverable_id) ?? null : null,
@@ -84,12 +91,24 @@ export default async function FinancieelPage() {
     amount: e.amount,
     entry_date: e.entry_date,
   }));
+  const filteredEvent = eventId ? eventById.get(eventId) : null;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Financieel"
-        subtitle="Kosten, opbrengsten en facturen per evenement."
+        subtitle={
+          filteredEvent ? (
+            <>
+              Gefilterd op {filteredEvent.name} ·{" "}
+              <Link href="/financieel" className="underline">
+                wis filter
+              </Link>
+            </>
+          ) : (
+            "Kosten, opbrengsten en facturen per evenement."
+          )
+        }
         actions={<NewFinancialEntryDialog events={events ?? []} deliverables={deliverableOptions} />}
       />
 
@@ -114,7 +133,9 @@ export default async function FinancieelPage() {
         <CardContent className="flex flex-col gap-3">
           <SectionTitle>Per evenement</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {perEvent.map(({ event, sponsorRevenue, income, expense, net, byCategory }) => (
+            {perEvent
+              .filter(({ event }) => !eventId || event.id === eventId)
+              .map(({ event, sponsorRevenue, income, expense, net, byCategory }) => (
               <div key={event.id} className="rounded-md border border-border p-3">
                 <p className="text-sm font-medium">{event.name}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
