@@ -1,89 +1,198 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
 import { requireSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import type { ProfileEventRole } from "@/lib/supabase/database.types";
 
-const eventSchema = z.object({
-  name: z.string().trim().min(1, "Naam is verplicht"),
-  location: z.string().trim().optional(),
-  start_date: z.string().trim().optional(),
-  end_date: z.string().trim().optional(),
-});
-
-export interface EventFormState {
-  error: string | null;
-}
-
-export async function createEvent(
-  _prevState: EventFormState,
-  formData: FormData,
-): Promise<EventFormState> {
-  const session = await requireSession();
-
-  const parsed = eventSchema.safeParse({
-    name: formData.get("name"),
-    location: formData.get("location") ?? undefined,
-    start_date: formData.get("start_date") ?? undefined,
-    end_date: formData.get("end_date") ?? undefined,
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ongeldige invoer." };
-  }
+export async function addEvent(name: string) {
+  await requireSession();
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Naam is verplicht.");
 
   const supabase = await createClient();
-  const { error } = await supabase.from("events").insert({
-    organization_id: session.organizationId,
-    name: parsed.data.name,
-    location: parsed.data.location || null,
-    start_date: parsed.data.start_date || null,
-    end_date: parsed.data.end_date || null,
-    created_by: session.userId,
-  });
+  const { error } = await supabase.from("events").insert({ name: trimmed });
+  if (error) throw new Error("Evenement toevoegen is mislukt.");
+  revalidatePath("/instellingen");
+  revalidatePath("/evenementen");
+}
 
+export async function renameEvent(id: string, name: string) {
+  await requireSession();
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Naam is verplicht.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("events").update({ name: trimmed }).eq("id", id);
+  if (error) throw new Error("Evenement bijwerken is mislukt.");
+  revalidatePath("/instellingen");
+  revalidatePath("/evenementen");
+}
+
+export async function deleteEvent(id: string) {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.from("events").delete().eq("id", id);
   if (error) {
-    return { error: "Evenement aanmaken is mislukt." };
+    throw new Error(
+      "Evenement verwijderen is mislukt — waarschijnlijk hangen er nog sponsorschappen onder een pakket van dit evenement.",
+    );
   }
-
-  revalidatePath("/events");
-  return { error: null };
+  revalidatePath("/instellingen");
+  revalidatePath("/evenementen");
 }
 
-export async function linkProfileToEvent(
-  profileId: string,
-  eventId: string,
-  role: ProfileEventRole,
-) {
-  const session = await requireSession();
-  const supabase = await createClient();
+export async function addEventPackage(eventId: string, name: string, value: number) {
+  await requireSession();
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Naam is verplicht.");
 
-  const { error } = await supabase.from("profile_event_links").insert({
-    profile_id: profileId,
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("event_packages")
+    .select("sort_order")
+    .eq("event_id", eventId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("event_packages").insert({
     event_id: eventId,
-    role,
-    created_by: session.userId,
+    name: trimmed,
+    value,
+    sort_order: (existing?.sort_order ?? -1) + 1,
   });
-
-  if (error) {
-    throw new Error("Koppelen aan evenement is mislukt.");
-  }
-
-  revalidatePath(`/profiles/${profileId}`);
+  if (error) throw new Error("Pakket toevoegen is mislukt.");
+  revalidatePath("/instellingen");
+  revalidatePath("/evenementen");
 }
 
-export async function unlinkProfileFromEvent(profileId: string, linkId: string) {
+export async function renameEventPackage(id: string, name: string, value: number) {
+  await requireSession();
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Naam is verplicht.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("event_packages")
+    .update({ name: trimmed, value })
+    .eq("id", id);
+  if (error) throw new Error("Pakket bijwerken is mislukt.");
+  revalidatePath("/instellingen");
+  revalidatePath("/evenementen");
+}
+
+export async function deleteEventPackage(id: string) {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.from("event_packages").delete().eq("id", id);
+  if (error) {
+    throw new Error(
+      "Pakket verwijderen is mislukt — waarschijnlijk hangen er nog sponsorschappen onder dit pakket.",
+    );
+  }
+  revalidatePath("/instellingen");
+  revalidatePath("/evenementen");
+}
+
+export async function setEventPackagePriceForYear(
+  packageId: string,
+  year: number,
+  value: number,
+  costPrice: number,
+) {
   await requireSession();
   const supabase = await createClient();
 
-  const { error } = await supabase.from("profile_event_links").delete().eq("id", linkId);
+  const { error } = await supabase
+    .from("event_package_prices")
+    .upsert(
+      { event_package_id: packageId, year, value, cost_price: costPrice },
+      { onConflict: "event_package_id,year" },
+    );
+  if (error) throw new Error("Prijs opslaan is mislukt.");
 
-  if (error) {
-    throw new Error("Ontkoppelen van evenement is mislukt.");
+  const currentYear = new Date().getFullYear();
+  if (year === currentYear) {
+    await supabase.from("event_packages").update({ value }).eq("id", packageId);
   }
 
-  revalidatePath(`/profiles/${profileId}`);
+  revalidatePath("/evenementen");
+}
+
+export async function deleteEventPackagePrice(id: string) {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.from("event_package_prices").delete().eq("id", id);
+  if (error) throw new Error("Verwijderen is mislukt.");
+  revalidatePath("/evenementen");
+}
+
+export async function addReciprocalPerformance(
+  packageId: string,
+  title: string,
+  description: string | null,
+  perceivedValue: number | null,
+) {
+  await requireSession();
+  const trimmed = title.trim();
+  if (!trimmed) throw new Error("Titel is verplicht.");
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("reciprocal_performances")
+    .select("sort_order")
+    .eq("event_package_id", packageId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("reciprocal_performances").insert({
+    event_package_id: packageId,
+    title: trimmed,
+    description,
+    perceived_value: perceivedValue,
+    sort_order: (existing?.sort_order ?? -1) + 1,
+  });
+  if (error) throw new Error("Toevoegen is mislukt.");
+  revalidatePath("/evenementen");
+}
+
+export async function deleteReciprocalPerformance(id: string) {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.from("reciprocal_performances").delete().eq("id", id);
+  if (error) throw new Error("Verwijderen is mislukt.");
+  revalidatePath("/evenementen");
+}
+
+export async function addReciprocalPerformanceAction(performanceId: string, title: string) {
+  await requireSession();
+  const trimmed = title.trim();
+  if (!trimmed) throw new Error("Titel is verplicht.");
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("reciprocal_performance_actions")
+    .select("sort_order")
+    .eq("reciprocal_performance_id", performanceId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("reciprocal_performance_actions").insert({
+    reciprocal_performance_id: performanceId,
+    title: trimmed,
+    sort_order: (existing?.sort_order ?? -1) + 1,
+  });
+  if (error) throw new Error("Toevoegen is mislukt.");
+  revalidatePath("/evenementen");
+}
+
+export async function deleteReciprocalPerformanceAction(id: string) {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.from("reciprocal_performance_actions").delete().eq("id", id);
+  if (error) throw new Error("Verwijderen is mislukt.");
+  revalidatePath("/evenementen");
 }

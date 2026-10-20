@@ -14,7 +14,7 @@ export async function signIn(
 ): Promise<LoginState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const redirectTo = String(formData.get("redirectTo") ?? "/profiles");
+  const redirectTo = String(formData.get("redirectTo") ?? "/");
 
   if (!email || !password) {
     return { error: "Vul e-mailadres en wachtwoord in." };
@@ -27,7 +27,7 @@ export async function signIn(
     return { error: "Inloggen mislukt. Controleer je gegevens." };
   }
 
-  redirect(redirectTo || "/profiles");
+  redirect(redirectTo || "/");
 }
 
 export async function signOut() {

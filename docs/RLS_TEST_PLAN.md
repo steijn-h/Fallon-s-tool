@@ -1,78 +1,79 @@
-# RLS-testplan: afscherming tussen organisaties
+# RLS-testplan: multi-tenant isolatie + platform-admin
 
-Doel: aantonen dat een gebruiker van organisatie X nooit data van organisatie
-Y kan zien of wijzigen — afgedwongen door Postgres Row Level Security, niet
-door applicatiecode.
+Stracq is sinds de "Fase 0"-uitbreiding weer multi-tenant: elke
+organisatie krijgt haar eigen Stracq-portaal, met een eigen pakket
+(a/b/c) dat door de platform-operator wordt toegekend via het
+beheerportaal (`/beheer`). RLS moet hier drie dingen garanderen:
+
+1. **Niemand die niet is ingelogd kan iets lezen of schrijven.**
+2. **Een medewerker van organisatie X kan nooit data van organisatie Y
+   zien of wijzigen** — ook niet via een directe tabel-query, een insert,
+   of door een id te raden.
+3. **Een platform-admin (het eigen beheer-account) kan wél overal bij**,
+   maar alleen via het expliciete `platform_admins`-allowlist-mechanisme —
+   niet via een gewone rol.
 
 ## Voorbereiding
 
-1. Start een lokale Supabase-instantie en pas migraties + seed toe:
-   ```bash
-   supabase start
-   supabase db reset
-   ```
-2. Kopieer `.env.example` naar `.env.local` en vul de lokale `anon key` in
-   (`supabase status` toont deze).
+1. Zorg dat de migraties zijn toegepast (`supabase db push` of, lokaal,
+   `supabase db reset`).
+2. Kopieer `.env.example` naar `.env.local` en vul de `anon key` in.
 
-De seed (`supabase/seed.sql`) maakt drie organisaties aan, één per pakket,
-elk met eigen gebruikers. Alle wachtwoorden zijn `Wachtwoord123!`.
-
-| Organisatie | Pakket | Gebruiker (rol) |
-|---|---|---|
-| Sportgala Events | a — Evenementen | sanne@sportgala-events.test (owner), bram@sportgala-events.test (member) |
-| Verenigingsdiensten BV | b — Standaard | fatima@verenigingsdiensten.test (owner) |
-| Citymarketing Regio Noord | c — Citymarketing | daan@citymarketing-noord.test (owner), lotte@citymarketing-noord.test (member) |
-
-## Optie 1 — geautomatiseerd script
+## Optie 1 — geautomatiseerd script (authenticatie-grens)
 
 ```bash
 node --env-file=.env.local scripts/verify-rls.mjs
 ```
 
-Het script logt in als een gebruiker van Sportgala Events (pakket a) én een
-gebruiker van Verenigingsdiensten BV (pakket b), en controleert:
+Dit controleert, zonder in te loggen, dat een anonieme cliënt nergens bij
+kan en nergens in kan schrijven. Dit script test **niet** de
+organisatie-isolatie (daarvoor zijn minimaal twee echte accounts in twee
+verschillende organisaties nodig) — zie optie 2 daarvoor.
 
-1. Elke gebruiker ziet in `profiles` uitsluitend rijen van de eigen organisatie.
-2. Expliciet filteren op het `organization_id` van de andere organisatie levert 0 rijen op (geen foutmelding — RLS filtert stil).
-3. De `organizations`-rij van de andere organisatie is niet leesbaar.
-4. Een nieuw profiel aanmaken met het `organization_id` van de andere organisatie mislukt (RLS `WITH CHECK`-schending).
-5. Een bestaand profiel van de andere organisatie bijwerken (op basis van het echte `id`) raakt 0 rijen.
+## Optie 2 — handmatig: organisatie-isolatie
 
-Alle vijf moeten "PASS" tonen. Het script eindigt met exit-code 1 zodra er
-iets faalt, zodat het ook in CI te gebruiken is.
+1. Maak via `/beheer` twee organisaties aan (bijv. "Test A" en "Test B").
+2. Maak twee staf-accounts aan via de Supabase-dashboard
+   (Authentication → Add user), en koppel account A aan organisatie A en
+   account B aan organisatie B via `/beheer/<org-id>`.
+3. Log in als account A, maak een prospect aan.
+4. Log uit, log in als account B. Bevestig dat je **niets** van organisatie
+   A ziet (niet op het Dashboard, niet in Acquisitie, geen enkele pagina) —
+   en dat organisatie B's eigen pipeline-stadia en handvatten er gewoon
+   staan (die zijn automatisch aangemaakt bij het aanmaken van de
+   organisatie).
+5. Log in als het platform-admin-account (zie hieronder) en bevestig dat
+   je wél data van beide organisaties ziet via `/beheer`.
 
-## Optie 2 — handmatig via de UI
+Dit exacte scenario is bij het bouwen van deze functionaliteit al
+rechtstreeks tegen een losse PostgreSQL-instantie doorgemeten (zie
+"Wat al geverifieerd is" in de README) — dit is de handmatige herhaling
+daarvan tegen je eigen Supabase-project.
 
-1. Log in de browser in als `sanne@sportgala-events.test`. Noteer de
-   zichtbare profielen op `/profiles` (Sportgala Events: FC Middenveld,
-   Bakkerij De Korenaar, Oude Sponsor BV — gearchiveerd).
-2. Log uit en log in als `fatima@verenigingsdiensten.test`. Controleer dat
-   geen van de Sportgala-profielen zichtbaar is, en dat alleen
-   Verenigingsdiensten-profielen (Buurtvereniging Zonnehof, Cafe De Hoek)
-   verschijnen.
-3. Probeer een profiel-URL van de andere organisatie rechtstreeks te openen
-   (kopieer bijvoorbeeld het `id` van "FC Middenveld" uit stap 1 en plak dat
-   in `/profiles/<id>` terwijl je als Fatima bent ingelogd) — dit moet een
-   "niet gevonden"-pagina geven, nooit de data zelf.
-4. Herhaal desgewenst met de citymarketing-organisatie
-   (`daan@citymarketing-noord.test`) om ook pakket c te controleren.
+## Optie 3 — losse SQL-check
 
-## Optie 3 — losse SQL-check (voor wie liever direct in de database kijkt)
-
-Verbind met `psql` als de `authenticated`-rol met een user-JWT (via de
-Supabase Studio SQL-editor met "Run as" ingesteld op een test-gebruiker), en
-voer uit:
+In de Supabase SQL Editor, met "Run as" op de `anon`-rol (niet ingelogd):
 
 ```sql
-select organization_id, count(*) from public.profiles group by 1;
+select count(*) from public.prospects;
 ```
 
-Dit mag altijd precies één `organization_id` teruggeven: die van de
-ingelogde gebruiker.
+Dit moet altijd `0` teruggeven.
 
-## Wat dit *niet* test
+## Een platform-admin-account aanmaken
 
-Dit testplan verifieert tenant-isolatie (organisatie X vs. Y). Het test niet
-de rolverschillen binnen één organisatie (owner/admin/member) — dat is een
-kleinere, losstaande policy-check die met dezelfde aanpak (inloggen als een
-`member`-gebruiker en een admin-only actie proberen) kan worden uitgevoerd.
+Er is bewust geen UI om jezelf platform-admin te maken (dat zou de hele
+afscherming omzeilbaar maken). Dit kan alleen via de SQL Editor, als
+postgres/service-role:
+
+```sql
+insert into public.platform_admins (user_id, note)
+values ('<uuid van je eigen auth-account>', 'operator');
+```
+
+## Wat dit niet test
+
+Fijnmazige rechten binnen één organisatie (bijv. "member mag alleen
+lezen") bestaan nog niet — elke rol binnen een organisatie (owner, admin,
+member) heeft nu nog gelijke leesrechten op alle tabellen van die
+organisatie. Dat staat als latere fase op de backlog.
