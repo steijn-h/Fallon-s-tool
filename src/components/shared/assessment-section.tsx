@@ -1,10 +1,8 @@
-import { ArchetypeAssessmentSection } from "@/components/shared/archetype-assessment-section";
 import { ArchetypeSuggestionCard } from "@/components/shared/archetype-suggestion-card";
 import { AssessmentBenchmarkChart } from "@/components/shared/assessment-benchmark-chart";
 import { AssessmentHandleRow } from "@/components/shared/assessment-handle-row";
 import { ScoreDisputeReviewCard } from "@/components/shared/score-dispute-review-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { SectionTitle } from "@/components/shared/page-header";
 import { getCurrentSession } from "@/lib/auth/session";
 import { archetypeById, suggestArchetypes, weightedTotalForArchetype, type Motivation } from "@/lib/archetypes";
 import { createClient } from "@/lib/supabase/server";
@@ -25,14 +23,9 @@ export async function AssessmentSection({
 }) {
   const supabase = await createClient();
   const session = await getCurrentSession();
-  const [{ data: handles }, { data: scores }, { data: assessments }, { data: disputes }] = await Promise.all([
+  const [{ data: handles }, { data: scores }, { data: disputes }] = await Promise.all([
     supabase.from("handles").select("*").order("category"),
     supabase.from("assessment_scores").select("*").eq("sponsorship_id", sponsorshipId),
-    supabase
-      .from("archetype_assessments")
-      .select("id, matches, explanation, created_at")
-      .eq("sponsorship_id", sponsorshipId)
-      .order("created_at", { ascending: false }),
     supabase
       .from("score_disputes")
       .select("id, handle_id, current_score, requested_score, reason, requested_by, created_at")
@@ -135,17 +128,6 @@ export async function AssessmentSection({
           />
         ))}
       </div>
-
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          <SectionTitle>Klopt dit archetype?</SectionTitle>
-          <ArchetypeAssessmentSection
-            sponsorshipId={sponsorshipId}
-            archetypeId={archetypeId}
-            assessments={assessments ?? []}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }

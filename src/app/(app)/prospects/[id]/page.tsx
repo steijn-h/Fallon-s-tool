@@ -2,14 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { ArchetypeAssessmentSection } from "@/components/shared/archetype-assessment-section";
 import { ArchetypeMethodologyPanel } from "@/components/shared/archetype-methodology-panel";
+import { ArchetypePersonaCard } from "@/components/shared/archetype-persona-card";
 import { ConversationLogsSection } from "@/components/shared/conversation-logs-section";
 import { ConvertToSponsorshipDialog } from "@/components/shared/convert-to-sponsorship-dialog";
 import { DeleteProspectButton } from "@/components/shared/delete-prospect-button";
 import { ProspectForm } from "@/components/shared/prospect-form";
 import { ProspectTasksSection } from "@/components/shared/prospect-tasks-section";
-import { SectionTitle } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { archetypeById } from "@/lib/archetypes";
@@ -69,68 +68,69 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <Card>
-          <CardContent>
-            <Tabs defaultValue="profiel" orientation="vertical" className="flex-row gap-4">
-              <TabsList className="h-fit w-44 shrink-0 flex-col items-stretch justify-start gap-1 bg-transparent p-0">
-                <TabsTrigger value="profiel" className="flex-none justify-start data-[state=active]:bg-accent">
-                  Profiel
+      <Card>
+        <CardContent>
+          <Tabs defaultValue="profiel" orientation="vertical" className="flex-row gap-4">
+            <TabsList className="h-fit w-44 shrink-0 flex-col items-stretch justify-start gap-1 bg-transparent p-0">
+              <TabsTrigger value="profiel" className="flex-none justify-start data-[state=active]:bg-accent">
+                Profiel
+              </TabsTrigger>
+              <TabsTrigger value="gesprekken" className="flex-none justify-start data-[state=active]:bg-accent">
+                Gespreksverslagen
+              </TabsTrigger>
+              <TabsTrigger value="taken" className="flex-none justify-start data-[state=active]:bg-accent">
+                Taken
+              </TabsTrigger>
+              {archetype ? (
+                <TabsTrigger
+                  value="verkoopmethodiek"
+                  className="flex-none justify-start data-[state=active]:bg-accent"
+                >
+                  Verkoopmethodiek
                 </TabsTrigger>
-                <TabsTrigger value="gesprekken" className="flex-none justify-start data-[state=active]:bg-accent">
-                  Gespreksverslagen
-                </TabsTrigger>
-                <TabsTrigger value="taken" className="flex-none justify-start data-[state=active]:bg-accent">
-                  Taken
-                </TabsTrigger>
-              </TabsList>
+              ) : null}
+            </TabsList>
 
-              <TabsContent value="profiel" className="min-w-0">
-                <ProspectForm
-                  prospect={prospect}
-                  contacts={contacts ?? []}
-                  phoneNumbers={phoneNumbers ?? []}
-                  stages={stages ?? []}
-                  owners={owners ?? []}
+            <TabsContent value="profiel" className="flex min-w-0 flex-col gap-4">
+              {archetype ? (
+                <ArchetypePersonaCard
+                  archetype={archetype}
+                  prospectId={prospect.id}
+                  assessments={archetypeAssessments ?? []}
                 />
-              </TabsContent>
+              ) : (
+                <Card>
+                  <CardContent className="text-sm text-muted-foreground">
+                    Nog geen archetype toegekend. Kies er één hieronder om de bijbehorende verkoopmethodiek
+                    te zien.
+                  </CardContent>
+                </Card>
+              )}
+              <ProspectForm
+                prospect={prospect}
+                contacts={contacts ?? []}
+                phoneNumbers={phoneNumbers ?? []}
+                stages={stages ?? []}
+                owners={owners ?? []}
+              />
+            </TabsContent>
 
-              <TabsContent value="gesprekken" className="min-w-0">
-                <ConversationLogsSection prospectId={prospect.id} />
-              </TabsContent>
+            <TabsContent value="gesprekken" className="min-w-0">
+              <ConversationLogsSection prospectId={prospect.id} />
+            </TabsContent>
 
-              <TabsContent value="taken" className="min-w-0">
-                <ProspectTasksSection prospectId={prospect.id} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+            <TabsContent value="taken" className="min-w-0">
+              <ProspectTasksSection prospectId={prospect.id} />
+            </TabsContent>
 
-        <div className="flex flex-col gap-4">
-          {archetype ? (
-            <>
-              <ArchetypeMethodologyPanel archetype={archetype} />
-              <Card>
-                <CardContent className="flex flex-col gap-3">
-                  <SectionTitle>Klopt dit archetype?</SectionTitle>
-                  <ArchetypeAssessmentSection
-                    prospectId={prospect.id}
-                    archetypeId={prospect.archetype_id as ArchetypeId | null}
-                    assessments={archetypeAssessments ?? []}
-                  />
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="text-sm text-muted-foreground">
-                Nog geen archetype toegekend. Kies er één op het tabblad &ldquo;Profiel&rdquo; om
-                hier de bijbehorende verkoopmethodiek te zien.
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+            {archetype ? (
+              <TabsContent value="verkoopmethodiek" className="min-w-0">
+                <ArchetypeMethodologyPanel archetype={archetype} />
+              </TabsContent>
+            ) : null}
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

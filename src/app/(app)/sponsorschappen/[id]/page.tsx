@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { ActivitiesTimeline } from "@/components/shared/activities-timeline";
+import { ArchetypePersonaCard } from "@/components/shared/archetype-persona-card";
 import { AssessmentSection } from "@/components/shared/assessment-section";
 import { DeleteSponsorshipButton } from "@/components/shared/delete-sponsorship-button";
 import { DeliverablesSection } from "@/components/shared/deliverables-section";
@@ -16,6 +17,7 @@ import { EventPackageBadge } from "@/components/shared/status-badges";
 import { findOwner, OwnerAvatar } from "@/components/shared/owner-avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { archetypeById } from "@/lib/archetypes";
 import { currency, durationYears } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { ArchetypeId } from "@/lib/types";
@@ -24,12 +26,18 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: sponsorship }, { data: owners }, { data: events }, { data: packages }] = await Promise.all([
-    supabase.from("sponsorships").select("*").eq("id", id).single(),
-    supabase.from("owners").select("*").order("name"),
-    supabase.from("events").select("*").order("name"),
-    supabase.from("event_packages").select("*").order("sort_order"),
-  ]);
+  const [{ data: sponsorship }, { data: owners }, { data: events }, { data: packages }, { data: archetypeAssessments }] =
+    await Promise.all([
+      supabase.from("sponsorships").select("*").eq("id", id).single(),
+      supabase.from("owners").select("*").order("name"),
+      supabase.from("events").select("*").order("name"),
+      supabase.from("event_packages").select("*").order("sort_order"),
+      supabase
+        .from("archetype_assessments")
+        .select("id, matches, explanation, created_at")
+        .eq("sponsorship_id", id)
+        .order("created_at", { ascending: false }),
+    ]);
 
   if (!sponsorship) {
     notFound();
@@ -38,6 +46,7 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
   const years = durationYears(sponsorship.start_date, sponsorship.end_date);
   const currentPackage = (packages ?? []).find((p) => p.id === sponsorship.event_package_id);
   const currentEvent = (events ?? []).find((e) => e.id === currentPackage?.event_id);
+  const archetype = archetypeById(sponsorship.archetype_id as ArchetypeId | null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -86,7 +95,7 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
           <Tabs defaultValue="overzicht" orientation="vertical" className="flex-row gap-4">
             <TabsList className="h-fit w-44 shrink-0 flex-col items-stretch justify-start gap-1 bg-transparent p-0">
               <TabsTrigger value="overzicht" className="flex-none justify-start data-[state=active]:bg-accent">
-                Overzicht
+                Profiel
               </TabsTrigger>
               <TabsTrigger value="deliverables" className="flex-none justify-start data-[state=active]:bg-accent">
                 Deliverables
@@ -102,7 +111,14 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overzicht" className="min-w-0">
+            <TabsContent value="overzicht" className="flex min-w-0 flex-col gap-4">
+              {archetype ? (
+                <ArchetypePersonaCard
+                  archetype={archetype}
+                  sponsorshipId={sponsorship.id}
+                  assessments={archetypeAssessments ?? []}
+                />
+              ) : null}
               <SponsorshipForm
                 sponsorship={sponsorship}
                 owners={owners ?? []}
