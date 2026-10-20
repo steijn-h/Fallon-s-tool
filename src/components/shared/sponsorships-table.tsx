@@ -41,15 +41,20 @@ export function SponsorshipsTable({
   owners,
   events,
   packages,
+  initialStatus,
+  initialPackageId,
 }: {
   sponsorships: SponsorshipRow[];
   owners: OwnerRow[];
   events: EventRow[];
   packages: EventPackageRow[];
+  initialStatus?: SponsorshipStatus;
+  initialPackageId?: string;
 }) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<SponsorshipStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<SponsorshipStatus | "all">(initialStatus ?? "all");
   const [eventFilter, setEventFilter] = useState<string | "all">("all");
+  const [packageFilter, setPackageFilter] = useState<string | "all">(initialPackageId ?? "all");
 
   const packageById = new Map(packages.map((p) => [p.id, p]));
 
@@ -57,6 +62,7 @@ export function SponsorshipsTable({
     if (search && !s.company.toLowerCase().includes(search.toLowerCase())) return false;
     if (statusFilter !== "all" && s.status !== statusFilter) return false;
     if (eventFilter !== "all" && packageById.get(s.event_package_id)?.event_id !== eventFilter) return false;
+    if (packageFilter !== "all" && s.event_package_id !== packageFilter) return false;
     return true;
   });
 
@@ -91,6 +97,19 @@ export function SponsorshipsTable({
             {events.map((event) => (
               <SelectItem key={event.id} value={event.id}>
                 {event.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={packageFilter} onValueChange={setPackageFilter}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Pakket" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle pakketten</SelectItem>
+            {packages.map((pkg) => (
+              <SelectItem key={pkg.id} value={pkg.id}>
+                {pkg.name}
               </SelectItem>
             ))}
           </SelectContent>

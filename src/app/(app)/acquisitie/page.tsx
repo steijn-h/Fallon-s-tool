@@ -4,7 +4,12 @@ import { NewProspectDialog } from "@/components/shared/new-prospect-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function AcquisitiePage() {
+export default async function AcquisitiePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ industry?: string }>;
+}) {
+  const { industry } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: prospects }, { data: stages }, { data: owners }] = await Promise.all([
@@ -31,7 +36,12 @@ export default async function AcquisitiePage() {
         }
       />
 
-      <KanbanBoard prospects={prospects ?? []} stages={stages ?? []} owners={owners ?? []} />
+      <KanbanBoard
+        prospects={prospects ?? []}
+        stages={stages ?? []}
+        owners={owners ?? []}
+        initialIndustry={industry}
+      />
     </div>
   );
 }

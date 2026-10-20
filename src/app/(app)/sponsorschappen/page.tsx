@@ -2,8 +2,14 @@ import { NewSponsorshipDialog } from "@/components/shared/new-sponsorship-dialog
 import { PageHeader } from "@/components/shared/page-header";
 import { SponsorshipsTable } from "@/components/shared/sponsorships-table";
 import { createClient } from "@/lib/supabase/server";
+import type { SponsorshipStatus } from "@/lib/types";
 
-export default async function SponsorshipsPage() {
+export default async function SponsorshipsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; packageId?: string }>;
+}) {
+  const { status, packageId } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: sponsorships }, { data: owners }, { data: events }, { data: packages }] = await Promise.all([
@@ -30,6 +36,8 @@ export default async function SponsorshipsPage() {
         owners={owners ?? []}
         events={events ?? []}
         packages={packages ?? []}
+        initialStatus={status as SponsorshipStatus | undefined}
+        initialPackageId={packageId}
       />
     </div>
   );

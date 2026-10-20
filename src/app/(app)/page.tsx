@@ -130,19 +130,23 @@ export default async function DashboardPage() {
       <PageHeader title="Dashboard" subtitle="Overzicht van acquisitie en lopende sponsorschappen." />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Verwachte pipelinewaarde"
-          value={compactCurrency(pipelineExpectedValue)}
-          delta="Open prospects × slagingskans"
-          icon={TrendingUp}
-        />
-        <StatCard label="Actieve sponsorwaarde" value={compactCurrency(activeValue)} icon={Award} />
-        <StatCard
-          label={`Sponsors in ${currentYear}`}
-          value={String(sponsorsThisYear)}
-          icon={Users}
-        />
-        <StatCard label="Geïnd" value={compactCurrency(totalCollected)} icon={Banknote} />
+        <Link href="/acquisitie" className="transition-opacity hover:opacity-90">
+          <StatCard
+            label="Verwachte pipelinewaarde"
+            value={compactCurrency(pipelineExpectedValue)}
+            delta="Open prospects × slagingskans"
+            icon={TrendingUp}
+          />
+        </Link>
+        <Link href="/sponsorschappen?status=active" className="transition-opacity hover:opacity-90">
+          <StatCard label="Actieve sponsorwaarde" value={compactCurrency(activeValue)} icon={Award} />
+        </Link>
+        <Link href="/sponsorschappen" className="transition-opacity hover:opacity-90">
+          <StatCard label={`Sponsors in ${currentYear}`} value={String(sponsorsThisYear)} icon={Users} />
+        </Link>
+        <Link href="/financieel" className="transition-opacity hover:opacity-90">
+          <StatCard label="Geïnd" value={compactCurrency(totalCollected)} icon={Banknote} />
+        </Link>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -170,12 +174,14 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex flex-col gap-3">
-            <SectionTitle>Pipelinewaarde per fase</SectionTitle>
-            <PipelineAreaChart data={pipelineChartData} />
-          </CardContent>
-        </Card>
+        <Link href="/acquisitie" className="block transition-opacity hover:opacity-90">
+          <Card>
+            <CardContent className="flex flex-col gap-3">
+              <SectionTitle>Pipelinewaarde per fase</SectionTitle>
+              <PipelineAreaChart data={pipelineChartData} />
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -267,12 +273,13 @@ export default async function DashboardPage() {
             <SectionTitle>Branches</SectionTitle>
             <div className="flex flex-wrap gap-2">
               {[...branchCounts.entries()].map(([branch, count]) => (
-                <span
+                <Link
                   key={branch}
-                  className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
+                  href={`/acquisitie?industry=${encodeURIComponent(branch)}`}
+                  className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground hover:bg-accent"
                 >
                   {branch} · {count}
-                </span>
+                </Link>
               ))}
               {branchCounts.size === 0 ? (
                 <p className="text-sm text-muted-foreground">Nog geen prospects met een branche.</p>
@@ -288,15 +295,16 @@ export default async function DashboardPage() {
               {[...packageStats.entries()].map(([pkgId, stat]) => {
                 const pkg = packageById.get(pkgId)!;
                 return (
-                  <div
+                  <Link
                     key={pkgId}
+                    href={`/sponsorschappen?packageId=${pkgId}`}
                     style={{ "--pkg-color": pkg.color } as CSSProperties}
-                    className="rounded-md border p-2.5 border-[hsl(var(--pkg-color)/0.3)] bg-[hsl(var(--pkg-color)/0.08)]"
+                    className="rounded-md border p-2.5 border-[hsl(var(--pkg-color)/0.3)] bg-[hsl(var(--pkg-color)/0.08)] transition-opacity hover:opacity-80"
                   >
                     <p className="text-xs font-medium text-[hsl(var(--pkg-color))]">{pkg.name}</p>
                     <p className="text-sm font-semibold">{stat.count}</p>
                     <p className="text-xs text-muted-foreground">{compactCurrency(stat.value)}</p>
-                  </div>
+                  </Link>
                 );
               })}
               {packageStats.size === 0 ? (

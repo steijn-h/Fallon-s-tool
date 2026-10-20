@@ -45,16 +45,19 @@ export function KanbanBoard({
   prospects,
   stages,
   owners,
+  initialIndustry,
 }: {
   prospects: ProspectRow[];
   stages: StageRow[];
   owners: OwnerRow[];
+  initialIndustry?: string;
 }) {
   const [items, setItems] = useState(prospects);
   const [search, setSearch] = useState("");
   const [sizeFilter, setSizeFilter] = useState<OrganizationSize | "all">("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [archetypeFilter, setArchetypeFilter] = useState<ArchetypeId | "all">("all");
+  const [industryFilter, setIndustryFilter] = useState<string>(initialIndustry ?? "all");
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
@@ -63,12 +66,14 @@ export function KanbanBoard({
     () => [...new Set(prospects.map((p) => p.company_type).filter((v): v is string => !!v))],
     [prospects],
   );
+  const industries = useMemo(() => [...new Set(prospects.map((p) => p.industry))], [prospects]);
 
   const filtered = items.filter((p) => {
     if (search && !p.company.toLowerCase().includes(search.toLowerCase())) return false;
     if (sizeFilter !== "all" && p.organization_size !== sizeFilter) return false;
     if (typeFilter !== "all" && p.company_type !== typeFilter) return false;
     if (archetypeFilter !== "all" && p.archetype_id !== archetypeFilter) return false;
+    if (industryFilter !== "all" && p.industry !== industryFilter) return false;
     return true;
   });
 
@@ -125,6 +130,19 @@ export function KanbanBoard({
             {ARCHETYPES.map((a) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={industryFilter} onValueChange={setIndustryFilter}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Branche" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle branches</SelectItem>
+            {industries.map((industry) => (
+              <SelectItem key={industry} value={industry}>
+                {industry}
               </SelectItem>
             ))}
           </SelectContent>
