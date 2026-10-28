@@ -30,12 +30,11 @@ function isItemActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-/** Dark left-rail navigation, HubSpot-style layout in Stracq's own colors. */
-export function SideNav() {
+export function TopNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">
+    <nav className="hidden items-center gap-1 md:flex">
       {NAV_ITEMS.map((item) => {
         const isActive = isItemActive(pathname, item.href);
         const Icon = item.icon;
@@ -45,13 +44,13 @@ export function SideNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors active:scale-[0.98]",
               isActive
-                ? "border-primary bg-sidebar-accent text-sidebar-foreground"
-                : "border-transparent text-sidebar-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                ? "border-primary bg-primary font-semibold text-primary-foreground shadow-brand"
+                : "border-transparent text-foreground hover:border-border hover:bg-accent active:bg-accent",
             )}
           >
-            <Icon className="size-4 shrink-0" />
+            <Icon className="size-4" />
             {item.label}
           </Link>
         );

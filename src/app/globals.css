@@ -31,14 +31,6 @@
   --input: 270 22% 90%;
   --ring: 25 95% 53%;
   --radius: 0.65rem;
-
-  /* Dark left-rail navigation (HubSpot-style sidebar), in Stracq's own
-     brand purple rather than HubSpot's black/green. */
-  --sidebar: 271 46% 14%;
-  --sidebar-foreground: 270 25% 94%;
-  --sidebar-muted-foreground: 270 15% 68%;
-  --sidebar-accent: 271 38% 24%;
-  --sidebar-border: 271 32% 22%;
 }
 
 @theme inline {
@@ -63,11 +55,6 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-muted-foreground: hsl(var(--sidebar-muted-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-border: hsl(var(--sidebar-border));
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
