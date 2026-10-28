@@ -15,8 +15,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CompanyMark } from "@/components/shared/company-mark";
 import { findOwner, OwnerAvatar } from "@/components/shared/owner-avatar";
 import { EventPackageBadge, StatusBadge } from "@/components/shared/status-badges";
+import { ARCHETYPES } from "@/lib/archetypes";
 import { compactCurrency, formatDate } from "@/lib/format";
-import { STATUS_META, type SponsorshipStatus } from "@/lib/types";
+import { STATUS_META, type ArchetypeId, type SponsorshipStatus } from "@/lib/types";
 import type { Database } from "@/lib/supabase/database.types";
 
 type SponsorshipRow = Pick<
@@ -31,6 +32,7 @@ type SponsorshipRow = Pick<
   | "start_date"
   | "end_date"
   | "owner_id"
+  | "archetype_id"
 >;
 type OwnerRow = Database["public"]["Tables"]["owners"]["Row"];
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -43,6 +45,7 @@ export function SponsorshipsTable({
   packages,
   initialStatus,
   initialPackageId,
+  initialArchetypeId,
 }: {
   sponsorships: SponsorshipRow[];
   owners: OwnerRow[];
@@ -50,11 +53,13 @@ export function SponsorshipsTable({
   packages: EventPackageRow[];
   initialStatus?: SponsorshipStatus;
   initialPackageId?: string;
+  initialArchetypeId?: ArchetypeId;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SponsorshipStatus | "all">(initialStatus ?? "all");
   const [eventFilter, setEventFilter] = useState<string | "all">("all");
   const [packageFilter, setPackageFilter] = useState<string | "all">(initialPackageId ?? "all");
+  const [archetypeFilter, setArchetypeFilter] = useState<ArchetypeId | "all">(initialArchetypeId ?? "all");
 
   const packageById = new Map(packages.map((p) => [p.id, p]));
 
@@ -63,6 +68,7 @@ export function SponsorshipsTable({
     if (statusFilter !== "all" && s.status !== statusFilter) return false;
     if (eventFilter !== "all" && packageById.get(s.event_package_id)?.event_id !== eventFilter) return false;
     if (packageFilter !== "all" && s.event_package_id !== packageFilter) return false;
+    if (archetypeFilter !== "all" && s.archetype_id !== archetypeFilter) return false;
     return true;
   });
 
@@ -110,6 +116,19 @@ export function SponsorshipsTable({
             {packages.map((pkg) => (
               <SelectItem key={pkg.id} value={pkg.id}>
                 {pkg.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={archetypeFilter} onValueChange={(v) => setArchetypeFilter(v as ArchetypeId | "all")}>
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Archetype" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle archetypen</SelectItem>
+            {ARCHETYPES.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.name}
               </SelectItem>
             ))}
           </SelectContent>

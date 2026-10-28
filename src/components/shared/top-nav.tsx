@@ -13,6 +13,7 @@ import {
   Target,
 } from "lucide-react";
 
+import { ARCHETYPES } from "@/lib/archetypes";
 import { cn } from "@/lib/utils";
 
 export const NAV_ITEMS = [
@@ -38,8 +39,7 @@ export function TopNav() {
       {NAV_ITEMS.map((item) => {
         const isActive = isItemActive(pathname, item.href);
         const Icon = item.icon;
-
-        return (
+        const link = (
           <Link
             key={item.href}
             href={item.href}
@@ -53,6 +53,29 @@ export function TopNav() {
             <Icon className="size-4" />
             {item.label}
           </Link>
+        );
+
+        if (item.href !== "/sponsorschappen") return link;
+
+        return (
+          <div key={item.href} className="group relative">
+            {link}
+            <div className="invisible absolute top-full left-0 z-50 pt-1 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100">
+              <div className="w-64 rounded-md border border-border bg-popover p-1.5 shadow-lg">
+                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Filter op archetype</p>
+                {ARCHETYPES.map((a) => (
+                  <Link
+                    key={a.id}
+                    href={`/sponsorschappen?archetypeId=${a.id}`}
+                    className="block rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                  >
+                    <span className="font-medium">{a.name}</span>
+                    <span className="block text-xs text-muted-foreground">{a.companyType}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
         );
       })}
     </nav>

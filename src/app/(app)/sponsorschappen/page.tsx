@@ -6,14 +6,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SponsorshipsTable } from "@/components/shared/sponsorships-table";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
-import type { SponsorshipStatus } from "@/lib/types";
+import type { ArchetypeId, SponsorshipStatus } from "@/lib/types";
 
 export default async function SponsorshipsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; packageId?: string; view?: string }>;
+  searchParams: Promise<{ status?: string; packageId?: string; archetypeId?: string; view?: string }>;
 }) {
-  const { status, packageId, view } = await searchParams;
+  const { status, packageId, archetypeId, view } = await searchParams;
   const isEventsView = view === "events";
   const supabase = await createClient();
 
@@ -21,7 +21,9 @@ export default async function SponsorshipsPage({
     await Promise.all([
       supabase
         .from("sponsorships")
-        .select("id, company, industry, logo_color, event_package_id, status, value, start_date, end_date, owner_id")
+        .select(
+          "id, company, industry, logo_color, event_package_id, status, value, start_date, end_date, owner_id, archetype_id",
+        )
         .order("created_at", { ascending: false }),
       supabase.from("owners").select("*").order("name"),
       supabase.from("events").select("*").order("name"),
@@ -75,6 +77,7 @@ export default async function SponsorshipsPage({
           packages={packages ?? []}
           initialStatus={status as SponsorshipStatus | undefined}
           initialPackageId={packageId}
+          initialArchetypeId={archetypeId as ArchetypeId | undefined}
         />
       )}
     </div>
