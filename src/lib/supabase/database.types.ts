@@ -243,7 +243,8 @@ export interface Database {
         Row: {
           id: string;
           organization_id: string;
-          prospect_id: string;
+          prospect_id: string | null;
+          sponsorship_id: string | null;
           title: string;
           description: string | null;
           due_date: string | null;
@@ -255,7 +256,8 @@ export interface Database {
         Insert: {
           id?: string;
           organization_id?: string;
-          prospect_id: string;
+          prospect_id?: string | null;
+          sponsorship_id?: string | null;
           title: string;
           description?: string | null;
           due_date?: string | null;

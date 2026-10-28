@@ -14,12 +14,24 @@ const taskSchema = z.object({
   priority: z.enum(["laag", "normaal", "hoog"]),
 });
 
+export type TaskParent = { prospectId: string } | { sponsorshipId: string };
+
+function parentPath(parent: TaskParent): string {
+  return "prospectId" in parent ? `/prospects/${parent.prospectId}` : `/sponsorschappen/${parent.sponsorshipId}`;
+}
+
+function revalidateParent(parent: TaskParent) {
+  revalidatePath(parentPath(parent));
+  revalidatePath("/taken");
+  revalidatePath("/");
+}
+
 export interface TaskFormState {
   error: string | null;
 }
 
 export async function addTask(
-  prospectId: string,
+  parent: TaskParent,
   _prevState: TaskFormState,
   formData: FormData,
 ): Promise<TaskFormState> {
@@ -38,7 +50,8 @@ export async function addTask(
 
   const supabase = await createClient();
   const { error } = await supabase.from("tasks").insert({
-    prospect_id: prospectId,
+    prospect_id: "prospectId" in parent ? parent.prospectId : null,
+    sponsorship_id: "sponsorshipId" in parent ? parent.sponsorshipId : null,
     title: parsed.data.title,
     description: parsed.data.description,
     due_date: parsed.data.dueDate,
@@ -49,12 +62,12 @@ export async function addTask(
     return { error: "Taak aanmaken is mislukt." };
   }
 
-  revalidatePath(`/prospects/${prospectId}`);
+  revalidateParent(parent);
   return { error: null };
 }
 
 export async function updateTask(
-  prospectId: string,
+  parent: TaskParent,
   taskId: string,
   input: { title: string; description: string | null; dueDate: string | null; priority: TaskPriority },
 ) {
@@ -77,12 +90,10 @@ export async function updateTask(
     .eq("id", taskId);
 
   if (error) throw new Error("Bijwerken is mislukt.");
-  revalidatePath(`/prospects/${prospectId}`);
-  revalidatePath("/taken");
-  revalidatePath("/");
+  revalidateParent(parent);
 }
 
-export async function toggleTask(prospectId: string, taskId: string, completed: boolean) {
+export async function toggleTask(parent: TaskParent, taskId: string, completed: boolean) {
   await requireSession();
   const supabase = await createClient();
   const { error } = await supabase
@@ -91,14 +102,14 @@ export async function toggleTask(prospectId: string, taskId: string, completed: 
     .eq("id", taskId);
 
   if (error) throw new Error("Bijwerken is mislukt.");
-  revalidatePath(`/prospects/${prospectId}`);
+  revalidateParent(parent);
 }
 
-export async function deleteTask(prospectId: string, taskId: string) {
+export async function deleteTask(parent: TaskParent, taskId: string) {
   await requireSession();
   const supabase = await createClient();
   const { error } = await supabase.from("tasks").delete().eq("id", taskId);
 
   if (error) throw new Error("Verwijderen is mislukt.");
-  revalidatePath(`/prospects/${prospectId}`);
+  revalidateParent(parent);
 }

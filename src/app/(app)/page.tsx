@@ -33,7 +33,7 @@ export default async function DashboardPage() {
     supabase.from("year_targets").select("*").single(),
     supabase
       .from("tasks")
-      .select("id, title, due_date, prospect_id")
+      .select("id, title, due_date, prospect_id, sponsorship_id")
       .eq("completed", false)
       .order("due_date", { ascending: true, nullsFirst: false })
       .limit(6),
@@ -46,7 +46,9 @@ export default async function DashboardPage() {
     supabase.from("event_packages").select("id, name, color"),
   ]);
 
-  const taskProspectIds = [...new Set((openTasks ?? []).map((t) => t.prospect_id))];
+  const taskProspectIds = [
+    ...new Set((openTasks ?? []).map((t) => t.prospect_id).filter((id): id is string => !!id)),
+  ];
   const activitySponsorshipIds = [...new Set((recentActivities ?? []).map((a) => a.sponsorship_id))];
 
   const [{ data: taskProspects }, { data: activitySponsorships }] = await Promise.all([
@@ -267,12 +269,15 @@ export default async function DashboardPage() {
               (openTasks ?? []).map((task) => (
                 <Link
                   key={task.id}
-                  href={`/prospects/${task.prospect_id}`}
+                  href={task.prospect_id ? `/prospects/${task.prospect_id}` : `/sponsorschappen/${task.sponsorship_id}`}
                   className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent"
                 >
                   <span className="truncate">{task.title}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {companyByProspectId.get(task.prospect_id) ?? ""} · {formatDate(task.due_date)}
+                    {(task.prospect_id
+                      ? companyByProspectId.get(task.prospect_id)
+                      : companyBySponsorshipIdFull.get(task.sponsorship_id!)) ?? ""}{" "}
+                    · {formatDate(task.due_date)}
                   </span>
                 </Link>
               ))

@@ -11,6 +11,7 @@ import { PaymentsSection } from "@/components/shared/payments-section";
 import { RenewSponsorshipDialog } from "@/components/shared/renew-sponsorship-dialog";
 import { SponsorshipForm } from "@/components/shared/sponsorship-form";
 import { SponsorshipStatusSelect } from "@/components/shared/sponsorship-status-select";
+import { SponsorshipTasksSection } from "@/components/shared/sponsorship-tasks-section";
 import { StatusPipeline } from "@/components/shared/status-pipeline";
 import { CompanyMark } from "@/components/shared/company-mark";
 import { EventPackageBadge } from "@/components/shared/status-badges";
@@ -106,6 +107,9 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
               <TabsTrigger value="activiteiten" className="flex-none justify-start data-[state=active]:bg-accent">
                 Activiteiten
               </TabsTrigger>
+              <TabsTrigger value="taken" className="flex-none justify-start data-[state=active]:bg-accent">
+                Taken
+              </TabsTrigger>
               <TabsTrigger value="beoordeling" className="flex-none justify-start data-[state=active]:bg-accent">
                 Beoordeling
               </TabsTrigger>
@@ -134,6 +138,9 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
             </TabsContent>
             <TabsContent value="activiteiten" className="min-w-0">
               <ActivitiesTimeline sponsorshipId={sponsorship.id} />
+            </TabsContent>
+            <TabsContent value="taken" className="min-w-0">
+              <SponsorshipTasksSection sponsorshipId={sponsorship.id} />
             </TabsContent>
             <TabsContent value="beoordeling" className="min-w-0">
               <AssessmentSection

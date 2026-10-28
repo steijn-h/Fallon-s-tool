@@ -2,15 +2,15 @@
 
 import { useActionState, useRef, useEffect } from "react";
 
-import { addTask, type TaskFormState } from "@/lib/actions/tasks";
+import { addTask, type TaskFormState, type TaskParent } from "@/lib/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const initialState: TaskFormState = { error: null };
 
-export function AddTaskForm({ prospectId }: { prospectId: string }) {
-  const action = addTask.bind(null, prospectId);
+export function AddTaskForm({ parent }: { parent: TaskParent }) {
+  const action = addTask.bind(null, parent);
   const [state, formAction, pending] = useActionState(action, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
