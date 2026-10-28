@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Banknote, FileClock, TrendingDown, TrendingUp } from "lucide-react";
 
+import { ClickableStatCard } from "@/components/shared/clickable-stat-card";
 import { FinancialEntriesTable } from "@/components/shared/financial-entries-table";
 import { NewFinancialEntryDialog } from "@/components/shared/new-financial-entry-dialog";
 import { PageHeader, SectionTitle } from "@/components/shared/page-header";
-import { StatCard } from "@/components/shared/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { compactCurrency, currency } from "@/lib/format";
+import { compactCurrency, currency, formatDate } from "@/lib/format";
 import { FINANCIAL_CATEGORY_LABELS } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,7 +31,7 @@ export default async function FinancieelPage({
     supabase.from("sponsorships").select("id, company, value, event_package_id"),
     supabase.from("event_packages").select("id, event_id"),
     supabase.from("deliverables").select("id, title, sponsorship_id"),
-    supabase.from("payments").select("amount, status"),
+    supabase.from("payments").select("amount, status, sponsorship_id, due_date"),
   ]);
 
   const eventById = new Map((events ?? []).map((e) => [e.id, e]));
@@ -61,6 +61,38 @@ export default async function FinancieelPage({
     .reduce((sum, e) => sum + e.amount, 0);
   const netResult = totalSponsorRevenue + totalOtherIncome - totalExpenses;
 
+  const revenueRows = [
+    ...(sponsorships ?? [])
+      .filter((s) => s.value > 0)
+      .map((s) => ({ amount: s.value, label: s.company, href: `/sponsorschappen/${s.id}` as string | undefined })),
+    ...(entries ?? [])
+      .filter((e) => e.type === "income")
+      .map((e) => ({
+        amount: e.amount,
+        label: `${e.description} (${eventById.get(e.event_id)?.name ?? "onbekend"})`,
+        href: undefined as string | undefined,
+      })),
+  ]
+    .sort((a, b) => b.amount - a.amount)
+    .map((r) => ({ label: r.label, value: currency(r.amount), href: r.href }));
+
+  const expenseRows = (entries ?? [])
+    .filter((e) => e.type === "expense")
+    .sort((a, b) => b.amount - a.amount)
+    .map((e) => ({
+      label: `${e.description} (${eventById.get(e.event_id)?.name ?? "onbekend"})`,
+      value: currency(e.amount),
+    }));
+
+  const outstandingRows = (payments ?? [])
+    .filter((p) => p.status !== "paid")
+    .sort((a, b) => b.amount - a.amount)
+    .map((p) => ({
+      label: sponsorshipById.get(p.sponsorship_id)?.company ?? "Onbekende sponsor",
+      value: `${currency(p.amount)} · vervalt ${formatDate(p.due_date)}`,
+      href: `/sponsorschappen/${p.sponsorship_id}`,
+    }));
+
   const perEvent = (events ?? []).map((event) => {
     const eventEntries = (entries ?? []).filter((e) => e.event_id === event.id);
     const income = eventEntries.filter((e) => e.type === "income").reduce((sum, e) => sum + e.amount, 0);
@@ -79,6 +111,14 @@ export default async function FinancieelPage({
     }));
     return { event, sponsorRevenue, income, expense, net: sponsorRevenue + income - expense, byCategory };
   });
+
+  const netResultRows = [...perEvent]
+    .sort((a, b) => b.net - a.net)
+    .map((row) => ({
+      label: row.event.name,
+      value: currency(row.net),
+      href: `/financieel?eventId=${row.event.id}`,
+    }));
 
   const filteredEntries = eventId ? (entries ?? []).filter((e) => e.event_id === eventId) : (entries ?? []);
   const tableRows = filteredEntries.map((e) => ({
@@ -113,19 +153,35 @@ export default async function FinancieelPage({
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Totale opbrengsten" value={compactCurrency(totalSponsorRevenue + totalOtherIncome)} icon={TrendingUp} />
-        <StatCard label="Totale kosten" value={compactCurrency(totalExpenses)} icon={TrendingDown} />
-        <StatCard
+        <ClickableStatCard
+          label="Totale opbrengsten"
+          value={compactCurrency(totalSponsorRevenue + totalOtherIncome)}
+          icon={TrendingUp}
+          detailTitle="Opbrengsten"
+          rows={revenueRows}
+        />
+        <ClickableStatCard
+          label="Totale kosten"
+          value={compactCurrency(totalExpenses)}
+          icon={TrendingDown}
+          detailTitle="Kosten"
+          rows={expenseRows}
+        />
+        <ClickableStatCard
           label="Netto resultaat"
           value={compactCurrency(netResult)}
           icon={Banknote}
           tone={netResult >= 0 ? "success" : "destructive"}
+          detailTitle="Netto resultaat per evenement"
+          rows={netResultRows}
         />
-        <StatCard
+        <ClickableStatCard
           label="Nog te innen"
           value={compactCurrency(totalOutstanding)}
           delta={`${compactCurrency(totalCollected)} al geïnd`}
           icon={FileClock}
+          detailTitle="Nog te innen betalingen"
+          rows={outstandingRows}
         />
       </div>
 

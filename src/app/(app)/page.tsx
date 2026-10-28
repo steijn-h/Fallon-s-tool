@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { Award, Banknote, TrendingUp, Users } from "lucide-react";
 
+import { ClickableStatCard } from "@/components/shared/clickable-stat-card";
 import { PageHeader, SectionTitle } from "@/components/shared/page-header";
 import { PipelineAreaChart } from "@/components/shared/pipeline-area-chart";
-import { StatCard } from "@/components/shared/stat-card";
 import { TargetBar } from "@/components/shared/target-bar";
 import { Card, CardContent } from "@/components/ui/card";
-import { compactCurrency, computeRenewalRate, durationYears, formatDate } from "@/lib/format";
+import { compactCurrency, currency, computeRenewalRate, durationYears, formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { Sponsorship } from "@/lib/types";
 
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
       .select("id, title, type, occurred_at, sponsorship_id")
       .order("occurred_at", { ascending: false })
       .limit(6),
-    supabase.from("payments").select("amount").eq("status", "paid"),
+    supabase.from("payments").select("amount, sponsorship_id, paid_at").eq("status", "paid"),
     supabase.from("event_packages").select("id, name, color"),
   ]);
 
@@ -60,6 +60,7 @@ export default async function DashboardPage() {
 
   const companyByProspectId = new Map((taskProspects ?? []).map((p) => [p.id, p.company]));
   const companyBySponsorshipId = new Map((activitySponsorships ?? []).map((s) => [s.id, s.company]));
+  const companyBySponsorshipIdFull = new Map((sponsorshipRows ?? []).map((s) => [s.id, s.company]));
 
   const sponsorships: Pick<
     Sponsorship,
@@ -89,6 +90,33 @@ export default async function DashboardPage() {
   ).length;
 
   const totalCollected = (paidPayments ?? []).reduce((sum, p) => sum + p.amount, 0);
+
+  const openPipelineRows = (prospects ?? [])
+    .filter((p) => openStageIds.has(p.stage_id))
+    .sort((a, b) => b.est_value * b.probability - a.est_value * a.probability)
+    .map((p) => ({
+      label: p.company,
+      value: currency((p.est_value * p.probability) / 100),
+      href: `/prospects/${p.id}`,
+    }));
+
+  const activeSponsorshipRows = sponsorships
+    .filter((s) => s.status === "active")
+    .sort((a, b) => b.value - a.value)
+    .map((s) => ({ label: s.company, value: currency(s.value), href: `/sponsorschappen/${s.id}` }));
+
+  const sponsorsThisYearRows = sponsorships
+    .filter((s) => new Date(s.startDate).getFullYear() === currentYear)
+    .sort((a, b) => b.value - a.value)
+    .map((s) => ({ label: s.company, value: currency(s.value), href: `/sponsorschappen/${s.id}` }));
+
+  const collectedPaymentRows = (paidPayments ?? [])
+    .sort((a, b) => b.amount - a.amount)
+    .map((p) => ({
+      label: companyBySponsorshipIdFull.get(p.sponsorship_id) ?? "Onbekende sponsor",
+      value: `${currency(p.amount)} · ${formatDate(p.paid_at)}`,
+      href: `/sponsorschappen/${p.sponsorship_id}`,
+    }));
 
   const renewalRate = computeRenewalRate(sponsorships as Sponsorship[], currentYear);
 
@@ -130,23 +158,39 @@ export default async function DashboardPage() {
       <PageHeader title="Dashboard" subtitle="Overzicht van acquisitie en lopende sponsorschappen." />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/acquisitie" className="transition-opacity hover:opacity-90">
-          <StatCard
-            label="Verwachte pipelinewaarde"
-            value={compactCurrency(pipelineExpectedValue)}
-            delta="Open prospects × slagingskans"
-            icon={TrendingUp}
-          />
-        </Link>
-        <Link href="/sponsorschappen?status=active" className="transition-opacity hover:opacity-90">
-          <StatCard label="Actieve sponsorwaarde" value={compactCurrency(activeValue)} icon={Award} />
-        </Link>
-        <Link href="/sponsorschappen" className="transition-opacity hover:opacity-90">
-          <StatCard label={`Sponsors in ${currentYear}`} value={String(sponsorsThisYear)} icon={Users} />
-        </Link>
-        <Link href="/financieel" className="transition-opacity hover:opacity-90">
-          <StatCard label="Geïnd" value={compactCurrency(totalCollected)} icon={Banknote} />
-        </Link>
+        <ClickableStatCard
+          label="Verwachte pipelinewaarde"
+          value={compactCurrency(pipelineExpectedValue)}
+          delta="Open prospects × slagingskans"
+          icon={TrendingUp}
+          detailTitle="Open prospects (gewogen waarde)"
+          rows={openPipelineRows}
+          viewAllHref="/acquisitie"
+        />
+        <ClickableStatCard
+          label="Actieve sponsorwaarde"
+          value={compactCurrency(activeValue)}
+          icon={Award}
+          detailTitle="Actieve sponsorschappen"
+          rows={activeSponsorshipRows}
+          viewAllHref="/sponsorschappen?status=active"
+        />
+        <ClickableStatCard
+          label={`Sponsors in ${currentYear}`}
+          value={String(sponsorsThisYear)}
+          icon={Users}
+          detailTitle={`Sponsors gestart in ${currentYear}`}
+          rows={sponsorsThisYearRows}
+          viewAllHref="/sponsorschappen"
+        />
+        <ClickableStatCard
+          label="Geïnd"
+          value={compactCurrency(totalCollected)}
+          icon={Banknote}
+          detailTitle="Geïnde betalingen"
+          rows={collectedPaymentRows}
+          viewAllHref="/financieel"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
