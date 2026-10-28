@@ -5,7 +5,7 @@ import { Minimize2, Maximize2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/shared/profile-menu";
-import { MobileNav, TopNav } from "@/components/shared/top-nav";
+import { MobileNav, SideNav } from "@/components/shared/top-nav";
 import { cn } from "@/lib/utils";
 
 const WIDTH_STORAGE_KEY = "stracq-layout-wide";
@@ -49,37 +49,43 @@ export function AppShell({
   }
 
   return (
-    <div className="flex min-h-svh flex-col">
-      <header className="border-b border-border bg-card">
-        <div
-          className={cn(
-            "mx-auto flex w-full items-center justify-between gap-4 px-4 py-3 md:px-8",
-            wide ? "max-w-none" : "max-w-6xl",
-          )}
-        >
-          <div className="flex items-center gap-6">
-            <span className="font-display text-lg font-bold text-gradient-brand">Stracq</span>
-            <TopNav />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={toggleWide}>
-              {wide ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-              {wide ? "Verkleinen" : "Verbreden"}
-            </Button>
-            <ProfileMenu
-              email={email}
-              organizationName={organizationName ?? null}
-              isPlatformAdmin={!!isPlatformAdmin}
-            />
-          </div>
+    <div className="flex min-h-svh">
+      <aside className="hidden w-60 shrink-0 flex-col bg-sidebar md:flex">
+        <div className="flex items-center gap-2 border-b border-sidebar-border px-5 py-4">
+          <span className="font-display text-lg font-bold text-sidebar-foreground">Stracq</span>
         </div>
-        <div className="md:hidden">
-          <MobileNav />
-        </div>
-      </header>
-      <main className={cn("mx-auto w-full flex-1 px-4 py-6 md:px-8", wide ? "max-w-none" : "max-w-6xl")}>
-        {children}
-      </main>
+        <SideNav />
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="border-b border-border bg-card">
+          <div
+            className={cn(
+              "mx-auto flex w-full items-center justify-between gap-4 px-4 py-3 md:justify-end md:px-8",
+              wide ? "max-w-none" : "max-w-6xl",
+            )}
+          >
+            <span className="font-display text-lg font-bold text-gradient-brand md:hidden">Stracq</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={toggleWide}>
+                {wide ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                {wide ? "Verkleinen" : "Verbreden"}
+              </Button>
+              <ProfileMenu
+                email={email}
+                organizationName={organizationName ?? null}
+                isPlatformAdmin={!!isPlatformAdmin}
+              />
+            </div>
+          </div>
+          <div className="md:hidden">
+            <MobileNav />
+          </div>
+        </header>
+        <main className={cn("mx-auto w-full flex-1 px-4 py-6 md:px-8", wide ? "max-w-none" : "max-w-6xl")}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
