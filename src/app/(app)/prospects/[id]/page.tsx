@@ -28,6 +28,7 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
     { data: events },
     { data: packages },
     { data: archetypeAssessments },
+    { data: archetypeSettings },
   ] = await Promise.all([
     supabase.from("prospects").select("*").eq("id", id).single(),
     supabase.from("prospect_contacts").select("*").eq("prospect_id", id),
@@ -41,6 +42,7 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
       .select("id, matches, explanation, created_at")
       .eq("prospect_id", id)
       .order("created_at", { ascending: false }),
+    supabase.from("archetype_settings").select("archetype_id, image_url"),
   ]);
 
   if (!prospect) {
@@ -48,6 +50,8 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
   }
 
   const archetype = archetypeById(prospect.archetype_id as ArchetypeId | null);
+  const archetypeImageUrl =
+    (archetypeSettings ?? []).find((s) => s.archetype_id === prospect.archetype_id)?.image_url ?? null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -97,6 +101,7 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
                   archetype={archetype}
                   prospectId={prospect.id}
                   assessments={archetypeAssessments ?? []}
+                  imageUrl={archetypeImageUrl}
                 />
               ) : (
                 <Card>

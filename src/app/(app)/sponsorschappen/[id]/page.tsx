@@ -27,18 +27,25 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: sponsorship }, { data: owners }, { data: events }, { data: packages }, { data: archetypeAssessments }] =
-    await Promise.all([
-      supabase.from("sponsorships").select("*").eq("id", id).single(),
-      supabase.from("owners").select("*").order("name"),
-      supabase.from("events").select("*").order("name"),
-      supabase.from("event_packages").select("*").order("sort_order"),
-      supabase
-        .from("archetype_assessments")
-        .select("id, matches, explanation, created_at")
-        .eq("sponsorship_id", id)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: sponsorship },
+    { data: owners },
+    { data: events },
+    { data: packages },
+    { data: archetypeAssessments },
+    { data: archetypeSettings },
+  ] = await Promise.all([
+    supabase.from("sponsorships").select("*").eq("id", id).single(),
+    supabase.from("owners").select("*").order("name"),
+    supabase.from("events").select("*").order("name"),
+    supabase.from("event_packages").select("*").order("sort_order"),
+    supabase
+      .from("archetype_assessments")
+      .select("id, matches, explanation, created_at")
+      .eq("sponsorship_id", id)
+      .order("created_at", { ascending: false }),
+    supabase.from("archetype_settings").select("archetype_id, image_url"),
+  ]);
 
   if (!sponsorship) {
     notFound();
@@ -48,6 +55,8 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
   const currentPackage = (packages ?? []).find((p) => p.id === sponsorship.event_package_id);
   const currentEvent = (events ?? []).find((e) => e.id === currentPackage?.event_id);
   const archetype = archetypeById(sponsorship.archetype_id as ArchetypeId | null);
+  const archetypeImageUrl =
+    (archetypeSettings ?? []).find((s) => s.archetype_id === sponsorship.archetype_id)?.image_url ?? null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -121,6 +130,7 @@ export default async function SponsorshipDetailPage({ params }: { params: Promis
                   archetype={archetype}
                   sponsorshipId={sponsorship.id}
                   assessments={archetypeAssessments ?? []}
+                  imageUrl={archetypeImageUrl}
                 />
               ) : null}
               <SponsorshipForm
