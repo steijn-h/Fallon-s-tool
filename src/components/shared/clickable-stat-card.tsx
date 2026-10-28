@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ComponentType } from "react";
+import { useState, type ReactNode } from "react";
 
-import { StatCard } from "@/components/shared/stat-card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export interface StatDetailRow {
   label: string;
@@ -30,7 +31,10 @@ export function ClickableStatCard({
   label: string;
   value: string;
   delta?: string;
-  icon: ComponentType<{ className?: string }>;
+  // A rendered icon element (e.g. <TrendingUp className="size-5" />), not a
+  // component reference — a bare component/function can't cross the
+  // server→client prop boundary, only already-rendered JSX can.
+  icon: ReactNode;
   tone?: "default" | "success" | "destructive";
   detailTitle: string;
   rows: StatDetailRow[];
@@ -41,7 +45,27 @@ export function ClickableStatCard({
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="w-full text-left">
-        <StatCard label={label} value={value} delta={delta} icon={icon} tone={tone} />
+        <Card>
+          <CardContent className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">{label}</p>
+              <p className="font-display mt-1 text-2xl font-semibold text-foreground">{value}</p>
+              {delta ? (
+                <p
+                  className={cn(
+                    "mt-1 text-xs font-medium",
+                    tone === "success" && "text-success",
+                    tone === "destructive" && "text-destructive",
+                    tone === "default" && "text-muted-foreground",
+                  )}
+                >
+                  {delta}
+                </p>
+              ) : null}
+            </div>
+            <div className="rounded-md bg-secondary p-2 text-primary">{icon}</div>
+          </CardContent>
+        </Card>
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

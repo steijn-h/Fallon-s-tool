@@ -68,7 +68,7 @@ export default async function AcquisitiePage({
           label="Open pipeline"
           value={compactCurrency(totalPipelineValue)}
           delta={`${openProspects.length} open prospects`}
-          icon={Target}
+          icon={<Target className="size-5" />}
           detailTitle="Open prospects"
           rows={openPipelineRows}
         />
@@ -76,7 +76,7 @@ export default async function AcquisitiePage({
           label="Gewogen pipelinewaarde"
           value={compactCurrency(weightedPipelineValue)}
           delta="Waarde × slagingskans"
-          icon={TrendingUp}
+          icon={<TrendingUp className="size-5" />}
           detailTitle="Open prospects (gewogen op slagingskans)"
           rows={[...openProspects]
             .sort((a, b) => b.est_value * b.probability - a.est_value * a.probability)
@@ -85,7 +85,7 @@ export default async function AcquisitiePage({
         <ClickableStatCard
           label="Gemiddelde dealgrootte"
           value={compactCurrency(avgDealSize)}
-          icon={Users}
+          icon={<Users className="size-5" />}
           detailTitle="Open prospects (op waarde)"
           rows={avgDealRows}
         />
@@ -93,7 +93,7 @@ export default async function AcquisitiePage({
           label="Conversieratio"
           value={`${conversionRate}%`}
           delta={`${wonProspects.length} gewonnen / ${lostProspects.length} verloren`}
-          icon={Percent}
+          icon={<Percent className="size-5" />}
           tone={conversionRate >= 50 ? "success" : "default"}
           detailTitle="Gewonnen en verloren prospects"
           rows={conversionRows}

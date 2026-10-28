@@ -162,7 +162,7 @@ export default async function DashboardPage() {
           label="Verwachte pipelinewaarde"
           value={compactCurrency(pipelineExpectedValue)}
           delta="Open prospects × slagingskans"
-          icon={TrendingUp}
+          icon={<TrendingUp className="size-5" />}
           detailTitle="Open prospects (gewogen waarde)"
           rows={openPipelineRows}
           viewAllHref="/acquisitie"
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
         <ClickableStatCard
           label="Actieve sponsorwaarde"
           value={compactCurrency(activeValue)}
-          icon={Award}
+          icon={<Award className="size-5" />}
           detailTitle="Actieve sponsorschappen"
           rows={activeSponsorshipRows}
           viewAllHref="/sponsorschappen?status=active"
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
         <ClickableStatCard
           label={`Sponsors in ${currentYear}`}
           value={String(sponsorsThisYear)}
-          icon={Users}
+          icon={<Users className="size-5" />}
           detailTitle={`Sponsors gestart in ${currentYear}`}
           rows={sponsorsThisYearRows}
           viewAllHref="/sponsorschappen"
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
         <ClickableStatCard
           label="Geïnd"
           value={compactCurrency(totalCollected)}
-          icon={Banknote}
+          icon={<Banknote className="size-5" />}
           detailTitle="Geïnde betalingen"
           rows={collectedPaymentRows}
           viewAllHref="/financieel"

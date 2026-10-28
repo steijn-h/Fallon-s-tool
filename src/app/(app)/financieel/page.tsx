@@ -156,21 +156,21 @@ export default async function FinancieelPage({
         <ClickableStatCard
           label="Totale opbrengsten"
           value={compactCurrency(totalSponsorRevenue + totalOtherIncome)}
-          icon={TrendingUp}
+          icon={<TrendingUp className="size-5" />}
           detailTitle="Opbrengsten"
           rows={revenueRows}
         />
         <ClickableStatCard
           label="Totale kosten"
           value={compactCurrency(totalExpenses)}
-          icon={TrendingDown}
+          icon={<TrendingDown className="size-5" />}
           detailTitle="Kosten"
           rows={expenseRows}
         />
         <ClickableStatCard
           label="Netto resultaat"
           value={compactCurrency(netResult)}
-          icon={Banknote}
+          icon={<Banknote className="size-5" />}
           tone={netResult >= 0 ? "success" : "destructive"}
           detailTitle="Netto resultaat per evenement"
           rows={netResultRows}
@@ -179,7 +179,7 @@ export default async function FinancieelPage({
           label="Nog te innen"
           value={compactCurrency(totalOutstanding)}
           delta={`${compactCurrency(totalCollected)} al geïnd`}
-          icon={FileClock}
+          icon={<FileClock className="size-5" />}
           detailTitle="Nog te innen betalingen"
           rows={outstandingRows}
         />
