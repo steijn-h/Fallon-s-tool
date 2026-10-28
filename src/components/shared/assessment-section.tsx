@@ -66,23 +66,35 @@ export async function AssessmentSection({
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardContent className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Gewogen beoordelingsscore</p>
-            <p className="font-display text-2xl font-semibold">
-              {total ?? "-"}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">/ 100</span>
-            </p>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Gewogen beoordelingsscore</p>
+              <p className="font-display text-2xl font-semibold">
+                {total ?? "-"}
+                <span className="ml-1 text-sm font-normal text-muted-foreground">/ 100</span>
+              </p>
+            </div>
+            {archetype ? (
+              <p className="max-w-[50%] text-right text-xs text-muted-foreground">
+                Gewogen o.b.v. archetype &ldquo;{archetype.name}&rdquo;
+              </p>
+            ) : (
+              <p className="max-w-[50%] text-right text-xs text-muted-foreground">
+                Geen archetype gekoppeld — ongewogen gemiddelde per handvat.
+              </p>
+            )}
           </div>
-          {archetype ? (
-            <p className="max-w-[50%] text-right text-xs text-muted-foreground">
-              Gewogen o.b.v. archetype &ldquo;{archetype.name}&rdquo;
-            </p>
-          ) : (
-            <p className="max-w-[50%] text-right text-xs text-muted-foreground">
-              Geen archetype gekoppeld — ongewogen gemiddelde per handvat.
-            </p>
-          )}
+          <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+            Hoe dit cijfer tot stand komt: elk handvat hieronder krijgt een score (automatisch berekend,
+            zie de toelichting per handvat), die wordt vermenigvuldigd met het gewicht van dat handvat
+            (in te stellen bij Handvatten). Voor handvatten die aan een motivatie van het archetype
+            gekoppeld zijn (bijv. Verbinding, Rendement, Uitvoerbaarheid) wordt de score bovendien
+            bijgesteld op basis van hoe sterk dát archetype normaal gesproken op die motivatie scoort —
+            vandaar &ldquo;archetype-benchmark&rdquo; in de grafiek hieronder: de paarse balk toont wat
+            voor dit archetype een representatieve score zou zijn, de oranje balk toont de werkelijke
+            score van deze sponsor.
+          </p>
         </CardContent>
       </Card>
 
