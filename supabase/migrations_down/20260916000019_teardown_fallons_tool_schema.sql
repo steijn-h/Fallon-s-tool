@@ -1,0 +1,13 @@
+-- Rollback for 20260916000019_teardown_fallons_tool_schema.sql
+--
+-- This teardown is a deliberate product pivot, not a mistake to undo in
+-- place — mechanically reversing a DROP TABLE CASCADE means recreating
+-- every dropped table, function and policy with its data gone regardless.
+-- To actually get the old "Fallon's Tool" schema back:
+--   1. Roll back every SponsorHub migration after this one (in reverse
+--      chronological order, per the usual convention in this folder), then
+--   2. Re-run migrations 20260910000001 through 20260910000018 in order —
+--      they are untouched and still valid on their own.
+-- There is intentionally no data restore here: this migration only ever
+-- drops schema, never rows, so nothing beyond the schema itself is lost by
+-- the teardown that this file could restore.

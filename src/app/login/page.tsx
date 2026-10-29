@@ -16,7 +16,7 @@ export default async function LoginPage({
           <CardDescription>Log in met je organisatie-account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm redirectTo={redirectTo ?? "/profiles"} />
+          <LoginForm redirectTo={redirectTo ?? "/"} />
         </CardContent>
       </Card>
     </div>

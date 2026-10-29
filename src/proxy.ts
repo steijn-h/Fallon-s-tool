@@ -44,7 +44,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && request.nextUrl.pathname === "/login") {
-    return NextResponse.redirect(new URL("/profiles", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return response;
